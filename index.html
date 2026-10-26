@@ -1209,9 +1209,9 @@
 
           html += `<line x1="${t1x.toFixed(1)}" y1="${t1y.toFixed(1)}" x2="${t2x.toFixed(1)}" y2="${t2y.toFixed(1)}" stroke="${arrowColor}" stroke-width="1.8" />`;
 
-          // Posición de la etiqueta
-          const lblX = tk.tx !== undefined ? tk.tx : Math.round(axX + (tk.ox !== undefined ? tk.ox : 0));
-          const lblY = tk.ty !== undefined ? tk.ty : Math.round(axY + (tk.oy !== undefined ? tk.oy : 16));
+          // Posición de la etiqueta (desplazamiento relativo al tick)
+          const lblX = Math.round(axX + (tk.ox !== undefined ? tk.ox : 0));
+          const lblY = Math.round(axY + (tk.oy !== undefined ? tk.oy : 0));
           const anchor = tk.anchor || 'middle';
 
           html += `
@@ -1474,19 +1474,19 @@
           });
 
           tItem.querySelector('.btn-nudge-left').addEventListener('click', () => {
-            tick.tx = (tick.tx !== undefined ? tick.tx : (tick.ox || 0)) - 2;
+            tick.ox = (tick.ox !== undefined ? tick.ox : 0) - 2;
             renderSVG();
           });
           tItem.querySelector('.btn-nudge-right').addEventListener('click', () => {
-            tick.tx = (tick.tx !== undefined ? tick.tx : (tick.ox || 0)) + 2;
+            tick.ox = (tick.ox !== undefined ? tick.ox : 0) + 2;
             renderSVG();
           });
           tItem.querySelector('.btn-nudge-up').addEventListener('click', () => {
-            tick.ty = (tick.ty !== undefined ? tick.ty : (tick.oy || 0)) - 2;
+            tick.oy = (tick.oy !== undefined ? tick.oy : 0) - 2;
             renderSVG();
           });
           tItem.querySelector('.btn-nudge-down').addEventListener('click', () => {
-            tick.ty = (tick.ty !== undefined ? tick.ty : (tick.oy || 0)) + 2;
+            tick.oy = (tick.oy !== undefined ? tick.oy : 0) + 2;
             renderSVG();
           });
 
@@ -1660,12 +1660,12 @@
         const tIdx = parseInt(target.getAttribute('data-tick'), 10);
         const tick = state.axes[axIdx].ticks[tIdx];
 
-        const currentX = tick.tx !== undefined ? tick.tx : parseFloat(target.getAttribute('x'));
-        const currentY = tick.ty !== undefined ? tick.ty : parseFloat(target.getAttribute('y'));
-
         draggingItem = { type: 'tick', obj: tick };
         dragStartMouse = { x: e.clientX, y: e.clientY };
-        dragStartPos = { x: currentX, y: currentY };
+        dragStartPos = {
+          ox: tick.ox !== undefined ? tick.ox : 0,
+          oy: tick.oy !== undefined ? tick.oy : 0
+        };
         e.preventDefault();
       }
 
@@ -1713,8 +1713,8 @@
       const dy = (e.clientY - dragStartMouse.y) / zoom;
 
       if (draggingItem.type === 'tick') {
-        draggingItem.obj.tx = Math.round(dragStartPos.x + dx);
-        draggingItem.obj.ty = Math.round(dragStartPos.y + dy);
+        draggingItem.obj.ox = Math.round(dragStartPos.ox + dx);
+        draggingItem.obj.oy = Math.round(dragStartPos.oy + dy);
       } else if (draggingItem.type === 'axis-box') {
         draggingItem.obj.boxX = Math.round(dragStartPos.x + dx);
         draggingItem.obj.boxY = Math.round(dragStartPos.y + dy);
