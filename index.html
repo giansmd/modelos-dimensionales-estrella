@@ -1077,6 +1077,29 @@
     // Deep clone state from default preset
     let currentPresetKey = 'preset-servicio';
     let state = JSON.parse(JSON.stringify(PRESETS[currentPresetKey]));
+    const SAVE_KEY = 'gdc-estado-v1';
+    // Restaurar estado guardado (localStorage)
+    let _saved = null;
+    try { _saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { _saved = null; }
+    if (_saved && _saved.s && _saved.p && PRESETS[_saved.p]) {
+      currentPresetKey = _saved.p;
+      state = _saved.s;
+    }
+
+    // === Persistencia client-side (localStorage) ===
+        let resetting = false;
+    let _saveTimer = null;
+    function guardarEstado() {
+      if (resetting) return;
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({p: currentPresetKey, s: state, z: zoom}));
+      } catch (e) {}
+    }
+    function guardarDebounced() {
+      clearTimeout(_saveTimer);
+      _saveTimer = setTimeout(guardarEstado, 600);
+    }
+
     let zoom = 1.0;
 
     const svgElem = document.getElementById('diagram-svg');
@@ -1087,6 +1110,7 @@
     // MOTOR DE RENDERIZADO SVG
     // =========================================================================
     function renderSVG() {
+      guardarDebounced();
       const { canvas, title, medidas, axes } = state;
       const { width, height, cx, cy, bgColor, axisLength, axisStroke, arrowColor, boxBorderColor } = canvas;
 
@@ -1548,6 +1572,9 @@
     });
 
     document.getElementById('btn-reset').addEventListener('click', () => {
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+      resetting = true;
+      setTimeout(() => { resetting = false; }, 1000);
       if (confirm('¿Restablecer la plantilla actual al diseño limpio original?')) {
         loadPreset(currentPresetKey);
       }
@@ -1711,6 +1738,7 @@
     const zoomLevel = document.getElementById('zoom-level');
 
     function updateZoom(newZoom) {
+      guardarDebounced();
       zoom = Math.max(0.4, Math.min(3.0, newZoom));
       stageElem.style.transform = `scale(${zoom})`;
       zoomLevel.innerText = Math.round(zoom * 100) + '%';
