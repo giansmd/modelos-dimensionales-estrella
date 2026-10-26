@@ -1,0 +1,1835 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Generador de Análisis Dimensional en Estrella</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg-dark: #090d16;
+      --bg-panel: #111827;
+      --bg-card: #1e293b;
+      --border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #10b981;
+      --accent-hover: #059669;
+      --danger: #ef4444;
+      --office-blue: #5b9bd5;
+      --office-arrow: #4f81bd;
+      --office-box: #4bacc6;
+      --office-measures: #d3dfee;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #38bdf8;
+      letter-spacing: -0.3px;
+    }
+
+    .brand svg {
+      width: 24px;
+      height: 24px;
+      fill: none;
+      stroke: #38bdf8;
+      stroke-width: 2;
+    }
+
+    .header-center {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-center label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .header-center select {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .header-center select:focus {
+      border-color: #38bdf8;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    button {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 7px 13px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: #334155;
+      border-color: #475569;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    button.btn-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #ffffff;
+    }
+
+    button.btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+
+    button.btn-accent {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+
+    button.btn-accent:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    /* Main Workspace Layout */
+    .workspace {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 58px);
+      overflow: hidden;
+    }
+
+    /* Sidebar Editor */
+    aside {
+      width: 440px;
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .tabs-nav {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: #0b1120;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 11px 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      border-bottom: 2px solid transparent;
+      justify-content: center;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: #1e293b55;
+    }
+
+    .tab-btn.active {
+      color: #38bdf8;
+      border-bottom-color: #38bdf8;
+      background: #1e293b88;
+    }
+
+    .tab-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Form Elements */
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="text"], input[type="number"], select, textarea {
+      width: 100%;
+      background: #090d16;
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+      border-color: #38bdf8;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .col {
+      flex: 1;
+    }
+
+    /* Dimension Cards */
+    .dim-card {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .dim-header {
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      background: #1e293b;
+      font-size: 13px;
+      font-weight: 600;
+      user-select: none;
+    }
+
+    .dim-header:hover {
+      background: #273549;
+    }
+
+    .dim-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dim-badge {
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .dim-body {
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      background: #141e2e;
+      display: none;
+    }
+
+    .dim-body.open {
+      display: block;
+    }
+
+    .tick-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+      background: #0f172a;
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid #1e293b;
+    }
+
+    .tick-item input {
+      padding: 4px 6px;
+      font-size: 12px;
+    }
+
+    .btn-icon {
+      padding: 5px;
+      border-radius: 4px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .btn-icon:hover {
+      color: var(--danger);
+      background: #ef444422;
+    }
+
+    /* Banner / Info boxes */
+    .info-banner {
+      background: #1e293b;
+      border-left: 3px solid #38bdf8;
+      padding: 10px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #cbd5e1;
+      margin-bottom: 14px;
+      line-height: 1.45;
+    }
+
+    .measures-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .measure-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #0f172a;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid #1e293b;
+    }
+
+    .measure-icon-tag {
+      font-size: 14px;
+      font-weight: bold;
+      color: #10b981;
+      width: 20px;
+      text-align: center;
+    }
+
+    /* Right Preview Canvas Area */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-dark);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .canvas-toolbar {
+      padding: 8px 16px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .canvas-tools-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .canvas-viewport {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      background: radial-gradient(#1e293b 1px, transparent 1px);
+      background-size: 20px 20px;
+      background-color: #0b0f19;
+      position: relative;
+      padding: 30px;
+    }
+
+    #stage {
+      background: #ffffff;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+      transition: transform 0.1s ease;
+      position: relative;
+      user-select: none;
+    }
+
+    /* Overlay comparator */
+    #overlay-img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0;
+      mix-blend-mode: difference;
+    }
+
+    /* Toast notification */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #10b981;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .color-picker-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .color-picker-wrap input[type="color"] {
+      -webkit-appearance: none;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      cursor: pointer;
+      background: transparent;
+    }
+
+    .badge-count {
+      background: #38bdf822;
+      color: #38bdf8;
+      border: 1px solid #38bdf844;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="2" x2="12" y2="22"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+        <line x1="4.93" y1="19.07" x2="19.07" y2="4.93"/>
+      </svg>
+      <span>Generador Dimensional de Modelos en Estrella</span>
+    </div>
+
+    <!-- Quick Preset Switcher in Header -->
+    <div class="header-center">
+      <label for="header-preset-selector">Plantilla:</label>
+      <select id="header-preset-selector">
+        <option value="preset-servicio">Servicio sin Incidencia (Captura 2)</option>
+        <option value="preset-aceptacion">Aceptación de Consumo Adicional (Captura 3)</option>
+        <option value="preset-satisfaccion">Satisfacción del Cliente (Captura 4)</option>
+        <option value="preset-buyers">Análisis Dimensional de Buyers</option>
+      </select>
+    </div>
+
+    <div class="actions">
+      <button id="btn-reset" title="Restablece al diseño idéntico original">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        Restablecer
+      </button>
+
+      <button id="btn-copy" class="btn-accent" title="Copia la imagen en alta definición al portapapeles">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copiar Imagen
+      </button>
+
+      <button id="btn-export-png" class="btn-primary" title="Descargar PNG en alta resolución (300 DPI / 4K)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Descargar PNG
+      </button>
+
+      <button id="btn-export-svg" title="Descargar SVG vectorial">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Descargar SVG
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Body -->
+  <div class="workspace">
+    <!-- Sidebar Settings -->
+    <aside>
+      <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="tab-axes">Dimensiones</button>
+        <button class="tab-btn" data-tab="tab-medidas">Medidas (Inferior)</button>
+        <button class="tab-btn" data-tab="tab-text">Título</button>
+        <button class="tab-btn" data-tab="tab-styles">Estilos y Calco</button>
+      </div>
+
+      <!-- Tab: Dimensiones (Ejes Radiales) -->
+      <div id="tab-axes" class="tab-content active">
+        <div class="info-banner">
+          💡 <strong>Tip interactivo:</strong> Puedes hacer clic y arrastrar los cuadros de dimensiones o los textos de marcas directamente sobre el lienzo.
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span id="axes-count-badge" class="badge-count">5 Ejes</span>
+          <button id="btn-add-axis" style="padding: 4px 10px; font-size: 12px;">+ Nueva Dimensión</button>
+        </div>
+        <div id="axes-container"></div>
+      </div>
+
+      <!-- Tab: Medidas (Cuadro Central Abajo - Máximo 3) -->
+      <div id="tab-medidas" class="tab-content">
+        <div class="info-banner">
+          📊 <strong>Cuadro de Medidas:</strong> Ubicado en la parte inferior central, directamente debajo de la estrella dimensional. Admite <strong>hasta 3 medidas</strong> con viñetas ✔.
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 0;">LISTA DE MEDIDAS</label>
+          <span id="measures-count-badge" class="badge-count">2 / 3</span>
+        </div>
+
+        <div id="measures-list-container" class="measures-list"></div>
+
+        <div class="form-group">
+          <button id="btn-add-measure" style="width: 100%; justify-content: center; padding: 8px;">+ Añadir Medida</button>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 16px 0;">
+
+        <div class="form-group">
+          <label>Color de Fondo del Cuadro</label>
+          <div class="color-picker-wrap">
+            <input type="color" id="measures-bg-color" value="#d3dfee">
+            <span id="measures-bg-label" style="font-size: 12px; color: #94a3b8;">#d3dfee (Azul Pastel Corporativo)</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col form-group">
+            <label>Posición Vertical (Y)</label>
+            <input type="number" id="measures-pos-y" value="442" min="200" max="800">
+          </div>
+          <div class="col form-group">
+            <label>Centrado Horizontal</label>
+            <div style="margin-top: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; text-transform: none; font-size: 13px; color: var(--text-main);">
+                <input type="checkbox" id="measures-autocenter" checked style="width: auto;"> Auto-centrado
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Títulos -->
+      <div id="tab-text" class="tab-content">
+        <div class="form-group">
+          <label>Título Principal</label>
+          <input type="text" id="main-title" value="SERVICIO SIN INCIDENCIA">
+        </div>
+        <div class="form-group">
+          <label>Color del Título</label>
+          <div class="color-picker-wrap">
+            <input type="color" id="title-color" value="#5b9bd5">
+            <span id="title-color-label" style="font-size: 12px; color: #94a3b8;">#5b9bd5 (Azul Brillante)</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label>Tamaño Fuente (px)</label>
+            <input type="number" id="title-size" value="24" min="14" max="40">
+          </div>
+          <div class="col form-group">
+            <label>Posición Y (px)</label>
+            <input type="number" id="title-y" value="46" min="10" max="150">
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Estilos y Comparador -->
+      <div id="tab-styles" class="tab-content">
+        <div class="form-group">
+          <label>Plantillas Rápidas</label>
+          <select id="preset-selector">
+            <option value="preset-servicio">Servicio sin Incidencia (Captura 2)</option>
+            <option value="preset-aceptacion">Aceptación de Consumo Adicional (Captura 3)</option>
+            <option value="preset-satisfaccion">Satisfacción del Cliente (Captura 4)</option>
+            <option value="preset-buyers">Análisis Dimensional de Buyers</option>
+          </select>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 16px 0;">
+
+        <div class="form-group">
+          <label>Herramienta de Calco y Verificación</label>
+          <div style="margin-bottom: 8px; font-size: 12px; color: #94a3b8;">
+            Superpone la imagen de referencia para comprobar la coincidencia exacta:
+          </div>
+          <div style="margin-bottom: 8px;">
+            <select id="overlay-select">
+              <option value="captura_servicio_sin_incidencia.png">Captura 2 (Servicio sin Incidencia)</option>
+              <option value="captura_aceptacion_consumo.png">Captura 3 (Aceptación de Consumo)</option>
+              <option value="captura_satisfaccion_cliente.png">Captura 4 (Satisfacción del Cliente)</option>
+            </select>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="range" id="overlay-opacity" min="0" max="100" value="0" style="flex: 1;">
+            <span id="opacity-val" style="font-size: 12px; width: 40px;">0%</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col form-group">
+            <label>Color de Flechas</label>
+            <div class="color-picker-wrap">
+              <input type="color" id="arrow-color" value="#4f81bd">
+              <span id="arrow-color-label" style="font-size: 11px; color: #94a3b8;">#4f81bd</span>
+            </div>
+          </div>
+          <div class="col form-group">
+            <label>Borde Dimensión</label>
+            <div class="color-picker-wrap">
+              <input type="color" id="box-border-color" value="#4bacc6">
+              <span id="box-border-label" style="font-size: 11px; color: #94a3b8;">#4bacc6</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col form-group">
+            <label>Grosor Flechas</label>
+            <input type="number" id="axis-stroke" value="4.5" step="0.5" min="2" max="8">
+          </div>
+          <div class="col form-group">
+            <label>Longitud Ejes</label>
+            <input type="number" id="axis-length" value="175" min="100" max="350">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col form-group">
+            <label>Fondo del Lienzo</label>
+            <div class="color-picker-wrap">
+              <input type="color" id="bg-color" value="#ffffff">
+              <span id="bg-color-label" style="font-size: 11px; color: #94a3b8;">#ffffff</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Canvas Preview Viewport -->
+    <main>
+      <div class="canvas-toolbar">
+        <div class="canvas-tools-group">
+          <span style="font-size: 12px; color: var(--text-muted);">Zoom:</span>
+          <button id="zoom-out">-</button>
+          <span id="zoom-level" style="font-size: 12px; font-weight: 600; width: 45px; text-align: center;">100%</span>
+          <button id="zoom-in">+</button>
+          <button id="zoom-fit">Ajustar Pantalla</button>
+          <button id="zoom-reset">100%</button>
+        </div>
+
+        <div class="canvas-tools-group">
+          <span id="canvas-resolution-label" style="font-size: 12px; color: #94a3b8;">Resolución: 820 × 540 px</span>
+        </div>
+      </div>
+
+      <div class="canvas-viewport" id="viewport">
+        <div id="stage" style="width: 820px; height: 540px;">
+          <!-- SVG Vector Rendering Engine -->
+          <svg id="diagram-svg" viewBox="0 0 820 540" width="820" height="540" xmlns="http://www.w3.org/2000/svg">
+            <!-- Rendered dynamically -->
+          </svg>
+          <!-- Overlay image for exact verification -->
+          <img id="overlay-img" src="captura_servicio_sin_incidencia.png" alt="Overlay Reference">
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    <span id="toast-msg">Imagen copiada al portapapeles</span>
+  </div>
+
+  <script>
+    // =========================================================================
+    // PLANTILLAS PRECONFIGURADAS (PRESETS)
+    // =========================================================================
+    const PRESETS = {
+      'preset-servicio': {
+        name: 'Servicio sin Incidencia (Captura 2)',
+        overlay: 'captura_servicio_sin_incidencia.png',
+        canvas: { width: 820, height: 540, cx: 410, cy: 232, bgColor: '#ffffff', axisLength: 175, axisStroke: 4.5, arrowColor: '#4f81bd', boxBorderColor: '#4bacc6' },
+        title: { text: 'SERVICIO SIN INCIDENCIA', color: '#5b9bd5', size: 25, y: 46 },
+        medidas: {
+          bgColor: '#d3dfee',
+          textColor: '#111827',
+          y: 442,
+          autoCenter: true,
+          items: [
+            'Servicios finalizados',
+            'Servicios sin incidencia'
+          ]
+        },
+        axes: [
+          {
+            id: 'fecha',
+            name: 'FECHA',
+            angle: 140,
+            ticks: [
+              { r: 48, text: 'Día', ox: -14, oy: 12, anchor: 'end' },
+              { r: 78, text: 'Mes', ox: -14, oy: 12, anchor: 'end' },
+              { r: 108, text: 'Trimestre', ox: -14, oy: 12, anchor: 'end' },
+              { r: 138, text: 'Semestre', ox: -14, oy: 12, anchor: 'end' },
+              { r: 168, text: 'Año', ox: -14, oy: 12, anchor: 'end' }
+            ]
+          },
+          {
+            id: 'lead',
+            name: 'LEAD',
+            angle: 40,
+            ticks: [
+              { r: 60, text: 'Nombre', ox: 14, oy: 12, anchor: 'start' },
+              { r: 110, text: 'Tipo de lead', ox: 14, oy: 12, anchor: 'start' },
+              { r: 160, text: 'Interés principal', ox: 14, oy: 12, anchor: 'start' }
+            ]
+          },
+          {
+            id: 'servicio',
+            name: 'SERVICIO',
+            angle: 0,
+            ticks: [
+              { r: 75, text: 'Tipo de servicio', ox: 0, oy: 20, anchor: 'middle' },
+              { r: 145, text: 'Estado', ox: 0, oy: 20, anchor: 'middle' }
+            ]
+          },
+          {
+            id: 'mesa',
+            name: 'MESA',
+            angle: 315,
+            ticks: [
+              { r: 65, text: 'N° mesa', ox: -14, oy: 12, anchor: 'end' },
+              { r: 115, text: 'Zona', ox: -14, oy: 12, anchor: 'end' },
+              { r: 165, text: 'Capacidad', ox: -14, oy: 12, anchor: 'end' }
+            ]
+          },
+          {
+            id: 'personal',
+            name: 'PERSONAL',
+            angle: 225,
+            ticks: [
+              { r: 55, text: 'Nombres', ox: -14, oy: 12, anchor: 'end' },
+              { r: 95, text: 'Apellidos', ox: -14, oy: 12, anchor: 'end' },
+              { r: 135, text: 'Cargo', ox: -14, oy: 12, anchor: 'end' },
+              { r: 170, text: 'Área', ox: -14, oy: 12, anchor: 'end' }
+            ]
+          }
+        ]
+      },
+
+      'preset-aceptacion': {
+        name: 'Aceptación de Consumo Adicional (Captura 3)',
+        overlay: 'captura_aceptacion_consumo.png',
+        canvas: { width: 850, height: 550, cx: 425, cy: 236, bgColor: '#ffffff', axisLength: 175, axisStroke: 4.5, arrowColor: '#4f81bd', boxBorderColor: '#4bacc6' },
+        title: { text: 'ACEPTACIÓN DE CONSUMO ADICIONAL', color: '#5b9bd5', size: 24, y: 46 },
+        medidas: {
+          bgColor: '#d3dfee',
+          textColor: '#111827',
+          y: 444,
+          autoCenter: true,
+          items: [
+            'Alertas enviadas',
+            'Alertas aceptadas'
+          ]
+        },
+        axes: [
+          {
+            id: 'fecha',
+            name: 'FECHA',
+            angle: 145,
+            ticks: [
+              { r: 48, text: 'Día', ox: -12, oy: 12, anchor: 'end' },
+              { r: 78, text: 'Mes', ox: -12, oy: 12, anchor: 'end' },
+              { r: 108, text: 'Trimestre', ox: -12, oy: 12, anchor: 'end' },
+              { r: 138, text: 'Semestre', ox: -12, oy: 12, anchor: 'end' },
+              { r: 168, text: 'Año', ox: -12, oy: 12, anchor: 'end' }
+            ]
+          },
+          {
+            id: 'lead',
+            name: 'LEAD',
+            angle: 180,
+            ticks: [
+              { r: 50, text: 'Nombre', ox: 0, oy: 20, anchor: 'middle' },
+              { r: 105, text: 'Tipo de lead', ox: 0, oy: 20, anchor: 'middle' },
+              { r: 160, text: 'Interés principal', ox: 0, oy: 20, anchor: 'middle' }
+            ]
+          },
+          {
+            id: 'personal',
+            name: 'PERSONAL',
+            angle: 225,
+            ticks: [
+              { r: 55, text: 'Nombres', ox: -14, oy: 12, anchor: 'end' },
+              { r: 95, text: 'Apellidos', ox: -14, oy: 12, anchor: 'end' },
+              { r: 135, text: 'Cargo', ox: -14, oy: 12, anchor: 'end' },
+              { r: 170, text: 'Área', ox: -14, oy: 12, anchor: 'end' }
+            ]
+          },
+          {
+            id: 'mesa',
+            name: 'MESA',
+            angle: 295,
+            ticks: [
+              { r: 60, text: 'Tipo de servicio', ox: -12, oy: 12, anchor: 'end' },
+              { r: 95, text: 'N° mesa', ox: -12, oy: 12, anchor: 'end' },
+              { r: 135, text: 'Zona', ox: -12, oy: 12, anchor: 'end' },
+              { r: 170, text: 'Capacidad', ox: -12, oy: 12, anchor: 'end' }
+            ]
+          },
+          {
+            id: 'servicio',
+            name: 'SERVICIO',
+            angle: 338,
+            ticks: [
+              { r: 130, text: 'Estado', ox: 0, oy: 20, anchor: 'middle' }
+            ]
+          },
+          {
+            id: 'alerta',
+            name: 'TIPO DE ALERTA',
+            angle: 18,
+            ticks: [
+              { r: 125, text: 'Descripción', ox: 0, oy: -14, anchor: 'middle' }
+            ]
+          },
+          {
+            id: 'producto',
+            name: 'PRODUCTO',
+            angle: 52,
+            ticks: [
+              { r: 40, text: 'Código', ox: 14, oy: 12, anchor: 'start' },
+              { r: 72, text: 'Nombre', ox: 14, oy: 12, anchor: 'start' },
+              { r: 104, text: 'Categoría', ox: 14, oy: 12, anchor: 'start' },
+              { r: 136, text: 'Precio base', ox: 14, oy: 12, anchor: 'start' },
+              { r: 168, text: 'Gancho promocional', ox: 14, oy: 12, anchor: 'start' }
+            ]
+          }
+        ]
+      },
+
+      'preset-satisfaccion': {
+        name: 'Satisfacción del Cliente (Captura 4)',
+        overlay: 'captura_satisfaccion_cliente.png',
+        canvas: { width: 840, height: 550, cx: 420, cy: 236, bgColor: '#ffffff', axisLength: 175, axisStroke: 4.5, arrowColor: '#4f81bd', boxBorderColor: '#4bacc6' },
+        title: { text: 'SATISFACCIÓN DEL CLIENTE', color: '#5b9bd5', size: 25, y: 46 },
+        medidas: {
+          bgColor: '#d3dfee',
+          textColor: '#111827',
+          y: 438,
+          autoCenter: true,
+          items: [
+            'Reseñas recibidas',
+            'Reseñas satisfechas',
+            'Estrellas totales'
+          ]
+        },
+        axes: [
+          {
+            id: 'fecha',
+            name: 'FECHA',
+            angle: 145,
+            ticks: [
+              { r: 48, text: 'Día', ox: -12, oy: 12, anchor: 'end' },
+              { r: 78, text: 'Mes', ox: -12, oy: 12, anchor: 'end' },
+              { r: 108, text: 'Trimestre', ox: -12, oy: 12, anchor: 'end' },
+              { r: 138, text: 'Semestre', ox: -12, oy: 12, anchor: 'end' },
+              { r: 168, text: 'Año', ox: -12, oy: 12, anchor: 'end' }
+            ]
+          },
+          {
+            id: 'calificacion',
+            name: 'CALIFICACIÓN',
+            angle: 38,
+            ticks: [
+              { r: 75, text: 'Valor (1 a 5)', ox: 14, oy: 12, anchor: 'start' },
+              { r: 145, text: 'Descripción', ox: 14, oy: 12, anchor: 'start' }
+            ]
+          },
+          {
+            id: 'servicio',
+            name: 'SERVICIO',
+            angle: 0,
+            ticks: [
+              { r: 75, text: 'Tipo de servicio', ox: 0, oy: 20, anchor: 'middle' },
+              { r: 145, text: 'Estado', ox: 0, oy: 20, anchor: 'middle' }
+            ]
+          },
+          {
+            id: 'mesa',
+            name: 'MESA',
+            angle: 315,
+            ticks: [
+              { r: 65, text: 'N° mesa', ox: -14, oy: 12, anchor: 'end' },
+              { r: 115, text: 'Zona', ox: -14, oy: 12, anchor: 'end' },
+              { r: 165, text: 'Capacidad', ox: -14, oy: 12, anchor: 'end' }
+            ]
+          },
+          {
+            id: 'personal',
+            name: 'PERSONAL',
+            angle: 225,
+            ticks: [
+              { r: 55, text: 'Nombres', ox: -14, oy: 12, anchor: 'end' },
+              { r: 95, text: 'Apellidos', ox: -14, oy: 12, anchor: 'end' },
+              { r: 135, text: 'Cargo', ox: -14, oy: 12, anchor: 'end' },
+              { r: 170, text: 'Área', ox: -14, oy: 12, anchor: 'end' }
+            ]
+          },
+          {
+            id: 'lead',
+            name: 'LEAD',
+            angle: 180,
+            ticks: [
+              { r: 50, text: 'Nombre', ox: 0, oy: 20, anchor: 'middle' },
+              { r: 105, text: 'Tipo de lead', ox: 0, oy: 20, anchor: 'middle' },
+              { r: 160, text: 'Interés principal', ox: 0, oy: 20, anchor: 'middle' }
+            ]
+          }
+        ]
+      },
+
+      'preset-buyers': {
+        name: 'Análisis Dimensional de Buyers',
+        overlay: 'captura_servicio_sin_incidencia.png',
+        canvas: { width: 850, height: 560, cx: 425, cy: 236, bgColor: '#ffffff', axisLength: 175, axisStroke: 4.5, arrowColor: '#4f81bd', boxBorderColor: '#4bacc6' },
+        title: { text: 'ANÁLISIS DIMENSIONAL DE BUYERS', color: '#5b9bd5', size: 24, y: 46 },
+        medidas: {
+          bgColor: '#d3dfee',
+          textColor: '#111827',
+          y: 446,
+          autoCenter: true,
+          items: [
+            'Costo por BUYER',
+            'Tasa de interés en menú digital',
+            'Tasa de Conversión BUYER a LEAD'
+          ]
+        },
+        axes: [
+          {
+            id: 'dim_fecha',
+            name: 'DIM FECHA',
+            angle: 98,
+            ticks: [
+              { r: 55, text: 'Día', ox: 14, oy: 0, anchor: 'start' },
+              { r: 95, text: 'Mes', ox: 14, oy: 0, anchor: 'start' },
+              { r: 135, text: 'Trimestre', ox: 14, oy: 0, anchor: 'start' },
+              { r: 170, text: 'Año', ox: 14, oy: 0, anchor: 'start' }
+            ]
+          },
+          {
+            id: 'dim_buyer',
+            name: 'DIM BUYER',
+            angle: 50,
+            ticks: [
+              { r: 55, text: 'Nombre', ox: 14, oy: 10, anchor: 'start' },
+              { r: 95, text: 'Plato favorito', ox: 14, oy: 10, anchor: 'start' },
+              { r: 135, text: 'Tipo Buyer', ox: 14, oy: 10, anchor: 'start' },
+              { r: 170, text: 'Red Social', ox: 14, oy: 10, anchor: 'start' }
+            ]
+          },
+          {
+            id: 'dim_producto',
+            name: 'DIM PRODUCTO',
+            angle: 0,
+            ticks: [
+              { r: 60, text: 'Pertene_combo', ox: 0, oy: 20, anchor: 'middle' },
+              { r: 100, text: 'Categoria', ox: 0, oy: 20, anchor: 'middle' },
+              { r: 140, text: 'Precio_base', ox: 0, oy: 20, anchor: 'middle' },
+              { r: 170, text: 'Nombre', ox: 0, oy: 20, anchor: 'middle' }
+            ]
+          },
+          {
+            id: 'dim_campana',
+            name: 'DIM CAMPAÑA',
+            angle: 300,
+            ticks: [
+              { r: 60, text: 'Fuente UTM', ox: 14, oy: -2, anchor: 'start' },
+              { r: 100, text: 'Plato Gancho', ox: 14, oy: -2, anchor: 'start' },
+              { r: 140, text: 'Tipo Buyer Objetivo', ox: 14, oy: -2, anchor: 'start' },
+              { r: 170, text: 'Nombre', ox: 14, oy: -2, anchor: 'start' }
+            ]
+          },
+          {
+            id: 'dim_personal',
+            name: 'DIM PERSONAL',
+            angle: 245,
+            ticks: [
+              { r: 60, text: 'Nombres', ox: -14, oy: 0, anchor: 'end' },
+              { r: 100, text: 'Apellidos', ox: -14, oy: 0, anchor: 'end' },
+              { r: 140, text: 'Cargo', ox: -14, oy: 0, anchor: 'end' },
+              { r: 170, text: 'Área', ox: -14, oy: 0, anchor: 'end' }
+            ]
+          },
+          {
+            id: 'dim_red_social',
+            name: 'DIM RED SOCIAL',
+            angle: 195,
+            ticks: [
+              { r: 50, text: 'URL', ox: 0, oy: -14, anchor: 'middle' },
+              { r: 95, text: 'Nombre Página', ox: 0, oy: -14, anchor: 'middle' },
+              { r: 140, text: 'Plataforma', ox: 0, oy: -14, anchor: 'middle' },
+              { r: 170, text: 'Personal', ox: 0, oy: -14, anchor: 'middle' }
+            ]
+          },
+          {
+            id: 'dim_anuncio',
+            name: 'DIM ANUNCIO',
+            angle: 145,
+            ticks: [
+              { r: 55, text: 'Nombre', ox: -14, oy: 10, anchor: 'end' },
+              { r: 95, text: 'Hora Inicio', ox: -14, oy: 10, anchor: 'end' },
+              { r: 135, text: 'Horario Fin', ox: -14, oy: 10, anchor: 'end' },
+              { r: 170, text: 'Campaña', ox: -14, oy: 10, anchor: 'end' }
+            ]
+          }
+        ]
+      }
+    };
+
+    // Deep clone state from default preset
+    let currentPresetKey = 'preset-servicio';
+    let state = JSON.parse(JSON.stringify(PRESETS[currentPresetKey]));
+    let zoom = 1.0;
+
+    const svgElem = document.getElementById('diagram-svg');
+    const stageElem = document.getElementById('stage');
+    const overlayImg = document.getElementById('overlay-img');
+
+    // =========================================================================
+    // MOTOR DE RENDERIZADO SVG
+    // =========================================================================
+    function renderSVG() {
+      const { canvas, title, medidas, axes } = state;
+      const { width, height, cx, cy, bgColor, axisLength, axisStroke, arrowColor, boxBorderColor } = canvas;
+
+      // Actualizar contenedor
+      svgElem.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      svgElem.setAttribute('width', width);
+      svgElem.setAttribute('height', height);
+      stageElem.style.width = width + 'px';
+      stageElem.style.height = height + 'px';
+      document.getElementById('canvas-resolution-label').innerText = `Resolución: ${width} × ${height} px`;
+
+      let html = '';
+
+      // Fondo
+      html += `<rect width="${width}" height="${height}" fill="${bgColor}" />`;
+
+      // Título principal centrado
+      html += `
+        <text x="${cx}" y="${title.y}" text-anchor="middle" font-family="Arial, 'Segoe UI', sans-serif" font-size="${title.size}px" font-weight="bold" fill="${title.color}" letter-spacing="0.5px">
+          ${escapeHtml(title.text)}
+        </text>
+      `;
+
+      // Configuración de punta de flecha
+      const headLen = 16;
+      const headW = 14;
+      const innerColor = bgColor || '#ffffff';
+
+      // Dibujar cada eje dimensional
+      axes.forEach((axis, axIdx) => {
+        const rad = (axis.angle * Math.PI) / 180;
+        const ux = Math.cos(rad);
+        const uy = -Math.sin(rad); // En SVG 'y' crece hacia abajo
+        const px = -uy;
+        const py = ux;
+
+        const effectiveLen = axis.length || axisLength;
+        const bw = Math.max(72, axis.name.length * 8.6 + 26);
+        const bh = 30;
+
+        // Centro de la caja de dimensión
+        let bcx, bcy;
+        if (axis.boxX !== undefined && axis.boxY !== undefined) {
+          bcx = axis.boxX;
+          bcy = axis.boxY;
+        } else {
+          bcx = cx + (effectiveLen + (bw / 2) * Math.abs(ux) + 6) * ux;
+          bcy = cy + (effectiveLen + (bh / 2) * Math.abs(uy) + 6) * uy;
+        }
+
+        // Intersección exacta rayo-rectángulo para que la flecha toque el borde de la caja
+        const hw = bw / 2;
+        const hh = bh / 2;
+        const dx = bcx - cx;
+        const dy = bcy - cy;
+        const dist = Math.hypot(dx, dy) || 1;
+        const nux = dx / dist;
+        const nuy = dy / dist;
+
+        const tx = Math.abs(nux) > 1e-5 ? hw / Math.abs(nux) : 1e9;
+        const ty = Math.abs(nuy) > 1e-5 ? hh / Math.abs(nuy) : 1e9;
+        const t = Math.min(tx, ty);
+
+        const tipX = bcx - t * nux;
+        const tipY = bcy - t * nuy;
+
+        // Base de la punta triangular
+        const baseX = tipX - headLen * nux;
+        const baseY = tipY - headLen * nuy;
+
+        // Tallo doble / hueco (hollow compound arrow shaft)
+        const outerStroke = axisStroke || 4.5;
+        const innerStroke = outerStroke * 0.5;
+
+        html += `<line x1="${cx}" y1="${cy}" x2="${baseX.toFixed(1)}" y2="${baseY.toFixed(1)}" stroke="${arrowColor}" stroke-width="${outerStroke}" stroke-linecap="butt" />`;
+        html += `<line x1="${cx}" y1="${cy}" x2="${baseX.toFixed(1)}" y2="${baseY.toFixed(1)}" stroke="${innerColor}" stroke-width="${innerStroke.toFixed(1)}" stroke-linecap="butt" />`;
+
+        // Punta de flecha triangular
+        const c1x = baseX + (headW / 2) * px;
+        const c1y = baseY + (headW / 2) * py;
+        const c2x = baseX - (headW / 2) * px;
+        const c2y = baseY - (headW / 2) * py;
+
+        html += `<polygon points="${tipX.toFixed(1)},${tipY.toFixed(1)} ${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)}" fill="${arrowColor}" stroke="${arrowColor}" stroke-width="1" stroke-linejoin="round" />`;
+
+        // Marcas transversales (ticks) y sus etiquetas
+        const tickHalf = 7;
+        axis.ticks.forEach((tk, tIdx) => {
+          const axX = cx + tk.r * nux;
+          const axY = cy + tk.r * nuy;
+
+          const t1x = axX + tickHalf * px;
+          const t1y = axY + tickHalf * py;
+          const t2x = axX - tickHalf * px;
+          const t2y = axY - tickHalf * py;
+
+          html += `<line x1="${t1x.toFixed(1)}" y1="${t1y.toFixed(1)}" x2="${t2x.toFixed(1)}" y2="${t2y.toFixed(1)}" stroke="${arrowColor}" stroke-width="1.8" />`;
+
+          // Posición de la etiqueta
+          const lblX = tk.tx !== undefined ? tk.tx : Math.round(axX + (tk.ox !== undefined ? tk.ox : 0));
+          const lblY = tk.ty !== undefined ? tk.ty : Math.round(axY + (tk.oy !== undefined ? tk.oy : 16));
+          const anchor = tk.anchor || 'middle';
+
+          html += `
+            <text x="${lblX}" y="${lblY}" text-anchor="${anchor}" dominant-baseline="middle" font-family="Arial, 'Segoe UI', sans-serif" font-size="11.5px" fill="#222222" paint-order="stroke fill" stroke="#ffffff" stroke-width="3.5px" stroke-linejoin="round" class="tick-label-draggable" data-axis="${axIdx}" data-tick="${tIdx}" style="cursor: move;">
+              ${escapeHtml(tk.text)}
+            </text>
+          `;
+        });
+
+        // Cuadro de Dimensión en la punta
+        const bx = bcx - hw;
+        const by = bcy - hh;
+
+        html += `
+          <g class="dim-box-group" data-axis="${axIdx}" style="cursor: move;">
+            <rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="#ffffff" stroke="${boxBorderColor}" stroke-width="2" class="dim-box-rect" data-axis="${axIdx}" />
+            <text x="${bcx.toFixed(1)}" y="${bcy.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-family="Arial, 'Segoe UI', sans-serif" font-size="12.5px" font-weight="bold" fill="#111827" letter-spacing="0.3px" style="pointer-events: none;">
+              ${escapeHtml(axis.name)}
+            </text>
+          </g>
+        `;
+      });
+
+      // =========================================================================
+      // CUADRO CENTRAL INFERIOR DE MEDIDAS (MÁXIMO 3 MEDIDAS CON ✔)
+      // =========================================================================
+      const measuresList = (medidas.items || []).slice(0, 3);
+      if (measuresList.length > 0) {
+        // Calcular ancho dinámico según el texto más largo
+        let maxLen = 0;
+        measuresList.forEach(m => {
+          if (m.length > maxLen) maxLen = m.length;
+        });
+
+        const mbW = Math.max(220, Math.min(380, maxLen * 8.2 + 58));
+        const lineHeight = 22;
+        const mbH = 16 + measuresList.length * lineHeight;
+
+        let mbX, mbY;
+        if (medidas.autoCenter) {
+          mbX = cx - mbW / 2;
+          mbY = medidas.y || 442;
+        } else {
+          mbX = medidas.x !== undefined ? medidas.x : (cx - mbW / 2);
+          mbY = medidas.y || 442;
+        }
+
+        const mbBg = medidas.bgColor || '#d3dfee';
+        const mbTextCol = medidas.textColor || '#111827';
+
+        html += `
+          <g class="measures-box-group" style="cursor: move;">
+            <rect x="${mbX.toFixed(1)}" y="${mbY.toFixed(1)}" width="${mbW.toFixed(1)}" height="${mbH.toFixed(1)}" fill="${mbBg}" rx="2" ry="2" class="measures-box-rect" />
+        `;
+
+        measuresList.forEach((m, idx) => {
+          const rowY = mbY + 14 + idx * lineHeight + 2;
+          const ckX = mbX + 18;
+
+          // Icono Checkmark vectorizado nítido ✔
+          html += `
+            <path d="M ${ckX} ${(rowY - 2).toFixed(1)} L ${(ckX + 4.5).toFixed(1)} ${(rowY + 3.5).toFixed(1)} L ${(ckX + 12).toFixed(1)} ${(rowY - 6).toFixed(1)}" fill="none" stroke="#000000" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+            <text x="${(ckX + 20).toFixed(1)}" y="${rowY.toFixed(1)}" dominant-baseline="middle" font-family="Arial, 'Segoe UI', sans-serif" font-size="13px" font-weight="bold" fill="${mbTextCol}">
+              ${escapeHtml(m)}
+            </text>
+          `;
+        });
+
+        html += `</g>`;
+      }
+
+      svgElem.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+      return (str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // =========================================================================
+    // GESTIÓN DE MEDIDAS (MÁXIMO 3)
+    // =========================================================================
+    function renderMedidasList() {
+      const container = document.getElementById('measures-list-container');
+      const addBtn = document.getElementById('btn-add-measure');
+      const countBadge = document.getElementById('measures-count-badge');
+      container.innerHTML = '';
+
+      const count = state.medidas.items.length;
+      countBadge.innerText = `${count} / 3`;
+
+      if (count >= 3) {
+        addBtn.disabled = true;
+        addBtn.innerText = '+ Añadir Medida (Máx. 3 Alcanzado)';
+      } else {
+        addBtn.disabled = false;
+        addBtn.innerText = '+ Añadir Medida';
+      }
+
+      state.medidas.items.forEach((m, idx) => {
+        const row = document.createElement('div');
+        row.className = 'measure-row';
+        row.innerHTML = `
+          <span class="measure-icon-tag">✔</span>
+          <input type="text" class="measure-input" value="${escapeHtml(m)}" style="flex: 1;" placeholder="Nombre de la medida">
+          <button class="btn-icon btn-del-measure" title="Eliminar medida">×</button>
+        `;
+
+        row.querySelector('.measure-input').addEventListener('input', (e) => {
+          state.medidas.items[idx] = e.target.value;
+          renderSVG();
+        });
+
+        row.querySelector('.btn-del-measure').addEventListener('click', () => {
+          state.medidas.items.splice(idx, 1);
+          renderMedidasList();
+          renderSVG();
+        });
+
+        container.appendChild(row);
+      });
+    }
+
+    document.getElementById('btn-add-measure').addEventListener('click', () => {
+      if (state.medidas.items.length < 3) {
+        state.medidas.items.push('Nueva Medida');
+        renderMedidasList();
+        renderSVG();
+      }
+    });
+
+    document.getElementById('measures-bg-color').addEventListener('input', (e) => {
+      state.medidas.bgColor = e.target.value;
+      document.getElementById('measures-bg-label').innerText = e.target.value;
+      renderSVG();
+    });
+
+    document.getElementById('measures-pos-y').addEventListener('input', (e) => {
+      state.medidas.y = parseFloat(e.target.value) || 440;
+      renderSVG();
+    });
+
+    document.getElementById('measures-autocenter').addEventListener('change', (e) => {
+      state.medidas.autoCenter = e.target.checked;
+      renderSVG();
+    });
+
+    // =========================================================================
+    // GESTIÓN DE DIMENSIONES (EJES RADIALES)
+    // =========================================================================
+    function renderAxesForm() {
+      const container = document.getElementById('axes-container');
+      const badge = document.getElementById('axes-count-badge');
+      badge.innerText = `${state.axes.length} Ejes`;
+      container.innerHTML = '';
+
+      state.axes.forEach((axis, axIdx) => {
+        const card = document.createElement('div');
+        card.className = 'dim-card';
+
+        const header = document.createElement('div');
+        header.className = 'dim-header';
+        header.innerHTML = `
+          <div class="dim-header-left">
+            <span>${axis.name}</span>
+            <span class="dim-badge">${axis.angle}°</span>
+          </div>
+          <button class="btn-icon btn-del-axis" title="Eliminar dimensión" style="padding: 2px 6px;">×</button>
+        `;
+
+        const body = document.createElement('div');
+        body.className = 'dim-body';
+
+        // Toggle acordeón al hacer clic (excepto si hace clic en eliminar)
+        header.addEventListener('click', (e) => {
+          if (e.target.closest('.btn-del-axis')) return;
+          body.classList.toggle('open');
+        });
+
+        header.querySelector('.btn-del-axis').addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (confirm(`¿Eliminar la dimensión '${axis.name}'?`)) {
+            state.axes.splice(axIdx, 1);
+            renderAxesForm();
+            renderSVG();
+          }
+        });
+
+        // Controles de la dimensión
+        body.innerHTML = `
+          <div class="row">
+            <div class="col form-group">
+              <label>Nombre Dimensión</label>
+              <input type="text" class="input-axis-name" value="${axis.name}">
+            </div>
+            <div class="col form-group">
+              <label>Ángulo (°)</label>
+              <input type="number" class="input-axis-angle" value="${axis.angle}" min="0" max="360">
+            </div>
+          </div>
+
+          <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 11px; margin: 0; color: #94a3b8;">MARCAS / JERARQUÍAS</label>
+            <button class="btn-add-tick" style="padding: 2px 7px; font-size: 11px;">+ Marca</button>
+          </div>
+          <div class="ticks-list"></div>
+        `;
+
+        const nameInput = body.querySelector('.input-axis-name');
+        nameInput.addEventListener('input', (e) => {
+          axis.name = e.target.value.toUpperCase();
+          header.querySelector('.dim-header-left span:first-child').innerText = axis.name;
+          renderSVG();
+        });
+
+        const angleInput = body.querySelector('.input-axis-angle');
+        angleInput.addEventListener('input', (e) => {
+          axis.angle = parseFloat(e.target.value) || 0;
+          header.querySelector('.dim-badge').innerText = axis.angle + '°';
+          delete axis.boxX;
+          delete axis.boxY;
+          renderSVG();
+        });
+
+        const addTickBtn = body.querySelector('.btn-add-tick');
+        addTickBtn.addEventListener('click', () => {
+          axis.ticks.push({ r: 120, text: 'Nueva Marca', ox: 14, oy: 12, anchor: 'start' });
+          renderAxesForm();
+          renderSVG();
+        });
+
+        const ticksList = body.querySelector('.ticks-list');
+        axis.ticks.forEach((tick, tIdx) => {
+          const tItem = document.createElement('div');
+          tItem.className = 'tick-item';
+          tItem.innerHTML = `
+            <input type="text" class="tick-text" value="${escapeHtml(tick.text)}" style="flex: 2;">
+            <input type="number" class="tick-r" value="${tick.r}" style="width: 50px;" title="Distancia desde el centro">
+            <div style="display: inline-flex; gap: 2px;">
+              <button class="btn-icon btn-nudge-left" title="Mover izquierda (2px)" style="padding: 2px 4px; font-size: 10px;">◀</button>
+              <button class="btn-icon btn-nudge-right" title="Mover derecha (2px)" style="padding: 2px 4px; font-size: 10px;">▶</button>
+              <button class="btn-icon btn-nudge-up" title="Mover arriba (2px)" style="padding: 2px 4px; font-size: 10px;">▲</button>
+              <button class="btn-icon btn-nudge-down" title="Mover abajo (2px)" style="padding: 2px 4px; font-size: 10px;">▼</button>
+            </div>
+            <button class="btn-icon btn-del-tick" title="Eliminar marca">×</button>
+          `;
+
+          tItem.querySelector('.tick-text').addEventListener('input', (e) => {
+            tick.text = e.target.value;
+            renderSVG();
+          });
+
+          tItem.querySelector('.tick-r').addEventListener('input', (e) => {
+            tick.r = parseFloat(e.target.value) || 0;
+            renderSVG();
+          });
+
+          tItem.querySelector('.btn-nudge-left').addEventListener('click', () => {
+            tick.tx = (tick.tx !== undefined ? tick.tx : (tick.ox || 0)) - 2;
+            renderSVG();
+          });
+          tItem.querySelector('.btn-nudge-right').addEventListener('click', () => {
+            tick.tx = (tick.tx !== undefined ? tick.tx : (tick.ox || 0)) + 2;
+            renderSVG();
+          });
+          tItem.querySelector('.btn-nudge-up').addEventListener('click', () => {
+            tick.ty = (tick.ty !== undefined ? tick.ty : (tick.oy || 0)) - 2;
+            renderSVG();
+          });
+          tItem.querySelector('.btn-nudge-down').addEventListener('click', () => {
+            tick.ty = (tick.ty !== undefined ? tick.ty : (tick.oy || 0)) + 2;
+            renderSVG();
+          });
+
+          tItem.querySelector('.btn-del-tick').addEventListener('click', () => {
+            axis.ticks.splice(tIdx, 1);
+            renderAxesForm();
+            renderSVG();
+          });
+
+          ticksList.appendChild(tItem);
+        });
+
+        card.appendChild(header);
+        card.appendChild(body);
+        container.appendChild(card);
+      });
+    }
+
+    document.getElementById('btn-add-axis').addEventListener('click', () => {
+      const newAngle = (state.axes.length * 60) % 360;
+      state.axes.push({
+        id: 'dim_' + Date.now(),
+        name: 'NUEVA DIMENSIÓN',
+        angle: newAngle,
+        ticks: [
+          { r: 70, text: 'Nivel 1', ox: 14, oy: 12, anchor: 'start' },
+          { r: 140, text: 'Nivel 2', ox: 14, oy: 12, anchor: 'start' }
+        ]
+      });
+      renderAxesForm();
+      renderSVG();
+    });
+
+    // =========================================================================
+    // SINCRONIZACIÓN DE FORMULARIOS E INPUTS
+    // =========================================================================
+    function syncAllInputs() {
+      document.getElementById('main-title').value = state.title.text;
+      document.getElementById('title-color').value = state.title.color;
+      document.getElementById('title-color-label').innerText = state.title.color;
+      document.getElementById('title-size').value = state.title.size;
+      document.getElementById('title-y').value = state.title.y;
+
+      document.getElementById('measures-bg-color').value = state.medidas.bgColor;
+      document.getElementById('measures-bg-label').innerText = state.medidas.bgColor;
+      document.getElementById('measures-pos-y').value = state.medidas.y;
+      document.getElementById('measures-autocenter').checked = !!state.medidas.autoCenter;
+
+      document.getElementById('arrow-color').value = state.canvas.arrowColor;
+      document.getElementById('arrow-color-label').innerText = state.canvas.arrowColor;
+      document.getElementById('box-border-color').value = state.canvas.boxBorderColor;
+      document.getElementById('box-border-label').innerText = state.canvas.boxBorderColor;
+      document.getElementById('axis-stroke').value = state.canvas.axisStroke;
+      document.getElementById('axis-length').value = state.canvas.axisLength;
+      document.getElementById('bg-color').value = state.canvas.bgColor;
+      document.getElementById('bg-color-label').innerText = state.canvas.bgColor;
+
+      if (PRESETS[currentPresetKey]) {
+        overlayImg.src = PRESETS[currentPresetKey].overlay;
+        document.getElementById('overlay-select').value = PRESETS[currentPresetKey].overlay;
+      }
+    }
+
+    function loadPreset(presetKey) {
+      if (!PRESETS[presetKey]) return;
+      currentPresetKey = presetKey;
+      state = JSON.parse(JSON.stringify(PRESETS[presetKey]));
+      document.getElementById('preset-selector').value = presetKey;
+      document.getElementById('header-preset-selector').value = presetKey;
+      syncAllInputs();
+      renderAxesForm();
+      renderMedidasList();
+      renderSVG();
+      showToast(`Plantilla cargada: ${PRESETS[presetKey].name}`);
+    }
+
+    document.getElementById('preset-selector').addEventListener('change', (e) => {
+      loadPreset(e.target.value);
+    });
+
+    document.getElementById('header-preset-selector').addEventListener('change', (e) => {
+      loadPreset(e.target.value);
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      if (confirm('¿Restablecer la plantilla actual al diseño limpio original?')) {
+        loadPreset(currentPresetKey);
+      }
+    });
+
+    // Control de Título
+    document.getElementById('main-title').addEventListener('input', (e) => {
+      state.title.text = e.target.value;
+      renderSVG();
+    });
+
+    document.getElementById('title-color').addEventListener('input', (e) => {
+      state.title.color = e.target.value;
+      document.getElementById('title-color-label').innerText = e.target.value;
+      renderSVG();
+    });
+
+    document.getElementById('title-size').addEventListener('input', (e) => {
+      state.title.size = parseFloat(e.target.value) || 24;
+      renderSVG();
+    });
+
+    document.getElementById('title-y').addEventListener('input', (e) => {
+      state.title.y = parseFloat(e.target.value) || 46;
+      renderSVG();
+    });
+
+    // Control de Estilos
+    document.getElementById('arrow-color').addEventListener('input', (e) => {
+      state.canvas.arrowColor = e.target.value;
+      document.getElementById('arrow-color-label').innerText = e.target.value;
+      renderSVG();
+    });
+
+    document.getElementById('box-border-color').addEventListener('input', (e) => {
+      state.canvas.boxBorderColor = e.target.value;
+      document.getElementById('box-border-label').innerText = e.target.value;
+      renderSVG();
+    });
+
+    document.getElementById('axis-stroke').addEventListener('input', (e) => {
+      state.canvas.axisStroke = parseFloat(e.target.value) || 4.5;
+      renderSVG();
+    });
+
+    document.getElementById('axis-length').addEventListener('input', (e) => {
+      state.canvas.axisLength = parseFloat(e.target.value) || 175;
+      renderSVG();
+    });
+
+    document.getElementById('bg-color').addEventListener('input', (e) => {
+      state.canvas.bgColor = e.target.value;
+      document.getElementById('bg-color-label').innerText = e.target.value;
+      renderSVG();
+    });
+
+    // Calco / Overlay
+    const opacitySlider = document.getElementById('overlay-opacity');
+    const opacityVal = document.getElementById('opacity-val');
+    opacitySlider.addEventListener('input', (e) => {
+      const val = e.target.value;
+      opacityVal.innerText = val + '%';
+      overlayImg.style.opacity = val / 100;
+    });
+
+    document.getElementById('overlay-select').addEventListener('change', (e) => {
+      overlayImg.src = e.target.value;
+    });
+
+    // =========================================================================
+    // ARRASTRE INTERACTIVO EN EL LIENZO (DRAG & DROP)
+    // =========================================================================
+    let draggingItem = null;
+    let dragStartMouse = { x: 0, y: 0 };
+    let dragStartPos = { x: 0, y: 0 };
+
+    svgElem.addEventListener('mousedown', (e) => {
+      const target = e.target;
+
+      // 1. Arrastre de etiquetas de ticks
+      if (target.classList.contains('tick-label-draggable')) {
+        const axIdx = parseInt(target.getAttribute('data-axis'), 10);
+        const tIdx = parseInt(target.getAttribute('data-tick'), 10);
+        const tick = state.axes[axIdx].ticks[tIdx];
+
+        const currentX = tick.tx !== undefined ? tick.tx : parseFloat(target.getAttribute('x'));
+        const currentY = tick.ty !== undefined ? tick.ty : parseFloat(target.getAttribute('y'));
+
+        draggingItem = { type: 'tick', obj: tick };
+        dragStartMouse = { x: e.clientX, y: e.clientY };
+        dragStartPos = { x: currentX, y: currentY };
+        e.preventDefault();
+      }
+
+      // 2. Arrastre de cuadro de dimensión
+      else if (target.classList.contains('dim-box-rect') || target.closest('.dim-box-group')) {
+        const group = target.closest('.dim-box-group');
+        const axIdx = parseInt(group.getAttribute('data-axis'), 10);
+        const axis = state.axes[axIdx];
+
+        let currentBcX = axis.boxX;
+        let currentBcY = axis.boxY;
+        if (currentBcX === undefined || currentBcY === undefined) {
+          const rect = group.querySelector('rect');
+          currentBcX = parseFloat(rect.getAttribute('x')) + parseFloat(rect.getAttribute('width')) / 2;
+          currentBcY = parseFloat(rect.getAttribute('y')) + parseFloat(rect.getAttribute('height')) / 2;
+        }
+
+        draggingItem = { type: 'axis-box', obj: axis };
+        dragStartMouse = { x: e.clientX, y: e.clientY };
+        dragStartPos = { x: currentBcX, y: currentBcY };
+        e.preventDefault();
+      }
+
+      // 3. Arrastre de cuadro de medidas
+      else if (target.classList.contains('measures-box-rect') || target.closest('.measures-box-group')) {
+        const rect = svgElem.querySelector('.measures-box-rect');
+        if (rect) {
+          state.medidas.autoCenter = false;
+          document.getElementById('measures-autocenter').checked = false;
+
+          const currentX = parseFloat(rect.getAttribute('x'));
+          const currentY = parseFloat(rect.getAttribute('y'));
+
+          draggingItem = { type: 'measures-box', obj: state.medidas };
+          dragStartMouse = { x: e.clientX, y: e.clientY };
+          dragStartPos = { x: currentX, y: currentY };
+          e.preventDefault();
+        }
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!draggingItem) return;
+      const dx = (e.clientX - dragStartMouse.x) / zoom;
+      const dy = (e.clientY - dragStartMouse.y) / zoom;
+
+      if (draggingItem.type === 'tick') {
+        draggingItem.obj.tx = Math.round(dragStartPos.x + dx);
+        draggingItem.obj.ty = Math.round(dragStartPos.y + dy);
+      } else if (draggingItem.type === 'axis-box') {
+        draggingItem.obj.boxX = Math.round(dragStartPos.x + dx);
+        draggingItem.obj.boxY = Math.round(dragStartPos.y + dy);
+      } else if (draggingItem.type === 'measures-box') {
+        draggingItem.obj.x = Math.round(dragStartPos.x + dx);
+        draggingItem.obj.y = Math.round(dragStartPos.y + dy);
+        document.getElementById('measures-pos-y').value = draggingItem.obj.y;
+      }
+      renderSVG();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (draggingItem) {
+        draggingItem = null;
+      }
+    });
+
+    // =========================================================================
+    // ZOOM Y CONTROLES DEL LIENZO
+    // =========================================================================
+    const zoomLevel = document.getElementById('zoom-level');
+
+    function updateZoom(newZoom) {
+      zoom = Math.max(0.4, Math.min(3.0, newZoom));
+      stageElem.style.transform = `scale(${zoom})`;
+      zoomLevel.innerText = Math.round(zoom * 100) + '%';
+    }
+
+    document.getElementById('zoom-in').addEventListener('click', () => updateZoom(zoom + 0.15));
+    document.getElementById('zoom-out').addEventListener('click', () => updateZoom(zoom - 0.15));
+    document.getElementById('zoom-reset').addEventListener('click', () => updateZoom(1.0));
+    document.getElementById('zoom-fit').addEventListener('click', () => {
+      const viewport = document.getElementById('viewport');
+      const scaleX = (viewport.clientWidth - 60) / state.canvas.width;
+      const scaleY = (viewport.clientHeight - 60) / state.canvas.height;
+      updateZoom(Math.min(scaleX, scaleY));
+    });
+
+    // =========================================================================
+    // EXPORTACIÓN A PNG ALTA DEFINICIÓN (2X / 300 DPI) Y SVG
+    // =========================================================================
+    function getCanvasBlob(scale = 2) {
+      return new Promise((resolve) => {
+        const svgString = new XMLSerializer().serializeToString(svgElem);
+        const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const URL = window.URL || window.webkitURL || window;
+        const blobURL = URL.createObjectURL(svgBlob);
+
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = state.canvas.width * scale;
+          canvas.height = state.canvas.height * scale;
+          const ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.scale(scale, scale);
+          ctx.drawImage(img, 0, 0);
+          URL.revokeObjectURL(blobURL);
+
+          canvas.toBlob((blob) => resolve(blob), 'image/png');
+        };
+        img.src = blobURL;
+      });
+    }
+
+    // Copiar al portapapeles
+    document.getElementById('btn-copy').addEventListener('click', async () => {
+      try {
+        const blob = await getCanvasBlob(2);
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+        showToast('¡Imagen HD copiada al portapapeles!');
+      } catch (err) {
+        console.error(err);
+        showToast('Usa "Descargar PNG" para guardar la imagen.');
+      }
+    });
+
+    // Descargar PNG
+    document.getElementById('btn-export-png').addEventListener('click', async () => {
+      const blob = await getCanvasBlob(2);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const filename = (state.title.text || 'diagrama_dimensional')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_') + '.png';
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Descargando PNG en alta resolución...');
+    });
+
+    // Descargar SVG
+    document.getElementById('btn-export-svg').addEventListener('click', () => {
+      const svgString = new XMLSerializer().serializeToString(svgElem);
+      const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const filename = (state.title.text || 'diagrama_dimensional')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_') + '.svg';
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Descargando archivo vectorial SVG...');
+    });
+
+    // Toast
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // Navegación de pestañas
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Inicialización al cargar
+    syncAllInputs();
+    renderAxesForm();
+    renderMedidasList();
+    renderSVG();
+
+    window.addEventListener('load', () => {
+      document.getElementById('zoom-fit').click();
+    });
+  </script>
+</body>
+</html>
