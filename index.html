@@ -478,6 +478,140 @@
       font-size: 11px;
       font-weight: 600;
     }
+
+    /* Modal de diagramas guardados */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      width: min(520px, calc(100vw - 40px));
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h2 {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .modal-header .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+
+    .modal-body {
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .save-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .save-row input {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .save-row input:focus {
+      border-color: #38bdf8;
+    }
+
+    .saved-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .saved-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+
+    .saved-item .saved-info {
+      min-width: 0;
+    }
+
+    .saved-item .saved-name {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .saved-item .saved-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .saved-item .saved-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .saved-item .saved-actions button {
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 5px;
+    }
+
+    .btn-danger {
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+
+    .saved-empty {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -507,6 +641,11 @@
     </div>
 
     <div class="actions">
+      <button id="btn-diagramas" title="Guardar el diagrama actual con un nombre y volver a los guardados">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Diagramas
+      </button>
+
       <button id="btn-reset" title="Restablece al diseño idéntico original">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
         Restablecer
@@ -720,6 +859,28 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Modal de diagramas guardados -->
+  <div class="modal-overlay" id="modal-diagramas">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2>Mis diagramas guardados</h2>
+        <button class="modal-close" id="modal-diagramas-close" title="Cerrar">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="save-row">
+          <input id="diagrama-nombre" type="text" placeholder="Nombre del diagrama actual..." maxlength="60">
+          <button id="btn-guardar-diagrama" class="btn-primary" title="Guarda la configuración completa del diagrama actual (ejes, medidas, título, estilos y lienzo)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Guardar actual
+          </button>
+        </div>
+        <div class="saved-list" id="saved-list">
+          <div class="saved-empty">Aún no has guardado diagramas.</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Toast Notification -->
@@ -1577,6 +1738,159 @@
       setTimeout(() => { resetting = false; }, 1000);
       if (confirm('¿Restablecer la plantilla actual al diseño limpio original?')) {
         loadPreset(currentPresetKey);
+      }
+    });
+
+    // =========================================================================
+    // DIAGRAMAS GUARDADOS (localStorage)
+    // =========================================================================
+    const DIAGRAMAS_KEY = 'gdc-diagramas-guardados';
+
+    function getDiagramasGuardados() {
+      try {
+        const lista = JSON.parse(localStorage.getItem(DIAGRAMAS_KEY) || '[]');
+        return Array.isArray(lista) ? lista : [];
+      } catch (e) { return []; }
+    }
+
+    function setDiagramasGuardados(lista) {
+      try { localStorage.setItem(DIAGRAMAS_KEY, JSON.stringify(lista)); } catch (e) {}
+    }
+
+    function snapshotDiagramaActual() {
+      return {
+        p: currentPresetKey,
+        s: JSON.parse(JSON.stringify(state)),
+        z: zoom
+      };
+    }
+
+    function abrirModalDiagramas() {
+      renderListaDiagramas();
+      document.getElementById('modal-diagramas').classList.add('show');
+    }
+
+    function cerrarModalDiagramas() {
+      document.getElementById('modal-diagramas').classList.remove('show');
+    }
+
+    function formatearFecha(iso) {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleDateString('es', { day: '2-digit', month: 'short' }) + ' ' +
+             d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function renderListaDiagramas() {
+      const cont = document.getElementById('saved-list');
+      const lista = getDiagramasGuardados();
+      if (!lista.length) {
+        cont.innerHTML = '<div class="saved-empty">Aún no has guardado diagramas.</div>';
+        return;
+      }
+      cont.innerHTML = '';
+      lista.forEach((diag) => {
+        const item = document.createElement('div');
+        item.className = 'saved-item';
+        item.innerHTML = `
+          <div class="saved-info">
+            <div class="saved-name">${diag.nombre.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</div>
+            <div class="saved-meta">${diag.preset} · ${formatearFecha(diag.fecha)}</div>
+          </div>
+          <div class="saved-actions">
+            <button data-accion="cargar" data-id="${diag.id}" class="btn-primary" title="Carga esta configuración completa">Cargar</button>
+            <button data-accion="sobrescribir" data-id="${diag.id}" title="Guarda el estado ACTUAL sobre este diagrama, conservando su nombre">Actualizar</button>
+            <button data-accion="renombrar" data-id="${diag.id}" title="Cambiar nombre">Renombrar</button>
+            <button data-accion="eliminar" data-id="${diag.id}" class="btn-danger" title="Eliminar este diagrama guardado">✕</button>
+          </div>`;
+        cont.appendChild(item);
+      });
+    }
+
+    function cargarDiagramaGuardado(id) {
+      const diag = getDiagramasGuardados().find(d => d.id === id);
+      if (!diag || !diag.s) return;
+      if (!confirm(`¿Cargar "${diag.nombre}"? La configuración actual sin guardar se pierde.`)) return;
+      currentPresetKey = diag.p;
+      state = JSON.parse(JSON.stringify(diag.s));
+      const nombrePreset = PRESETS[diag.p] ? PRESETS[diag.p].name : diag.p;
+      document.getElementById('preset-selector').value = diag.p;
+      document.getElementById('header-preset-selector').value = diag.p;
+      guardarEstado();
+      syncAllInputs();
+      renderAxesForm();
+      renderMedidasList();
+      renderSVG();
+      updateZoom(diag.z || 1.0);
+      cerrarModalDiagramas();
+      showToast(`Diagrama cargado: ${diag.nombre} (${nombrePreset})`);
+    }
+
+    document.getElementById('btn-diagramas').addEventListener('click', abrirModalDiagramas);
+    document.getElementById('modal-diagramas-close').addEventListener('click', cerrarModalDiagramas);
+    document.getElementById('modal-diagramas').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('modal-diagramas')) cerrarModalDiagramas();
+    });
+
+    // Guardar el estado ACTUAL bajo el nombre escrito
+    document.getElementById('btn-guardar-diagrama').addEventListener('click', () => {
+      const input = document.getElementById('diagrama-nombre');
+      const nombre = input.value.trim();
+      if (!nombre) { showToast('Escribe un nombre para el diagrama.'); return; }
+      const lista = getDiagramasGuardados();
+      const snap = snapshotDiagramaActual();
+      lista.unshift({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+        nombre,
+        p: snap.p,
+        s: snap.s,
+        z: snap.z,
+        fecha: new Date().toISOString(),
+        preset: PRESETS[snap.p] ? PRESETS[snap.p].name : snap.p
+      });
+      setDiagramasGuardados(lista);
+      input.value = '';
+      renderListaDiagramas();
+      showToast(`Diagrama guardado: ${nombre}`);
+    });
+
+    // Acciones sobre cada diagrama guardado (delegación)
+    document.getElementById('saved-list').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-accion]');
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const accion = btn.dataset.accion;
+      const lista = getDiagramasGuardados();
+      const diag = lista.find(d => d.id === id);
+      if (!diag) return;
+
+      if (accion === 'cargar') {
+        cargarDiagramaGuardado(id);
+      } else if (accion === 'sobrescribir') {
+        const snap = snapshotDiagramaActual();
+        diag.p = snap.p;
+        diag.s = snap.s;
+        diag.z = snap.z;
+        diag.preset = PRESETS[snap.p] ? PRESETS[snap.p].name : snap.p;
+        diag.fecha = new Date().toISOString();
+        setDiagramasGuardados(lista);
+        guardarEstado();
+        renderListaDiagramas();
+        showToast(`Actualizado: ${diag.nombre}`);
+      } else if (accion === 'renombrar') {
+        const nuevo = prompt('Nuevo nombre:', diag.nombre);
+        if (nuevo === null) return;
+        const nombre = nuevo.trim();
+        if (!nombre) { showToast('El nombre no puede quedar vacío.'); return; }
+        diag.nombre = nombre;
+        setDiagramasGuardados(lista);
+        renderListaDiagramas();
+        showToast(`Renombrado: ${nombre}`);
+      } else if (accion === 'eliminar') {
+        if (!confirm(`¿Eliminar "${diag.nombre}"? Esta acción no se puede deshacer.`)) return;
+        setDiagramasGuardados(lista.filter(d => d.id !== id));
+        renderListaDiagramas();
+        showToast(`Eliminado: ${diag.nombre}`);
       }
     });
 
