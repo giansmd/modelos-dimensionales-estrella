@@ -200,6 +200,75 @@
       background: #1e293b88;
     }
 
+    .quick-json {
+      width: 100%;
+      font-family: "Cascadia Code", Menlo, Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.45;
+      background: #0b1120;
+      color: #e2e8f0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px;
+      resize: vertical;
+      outline: none;
+    }
+
+    .quick-json:focus {
+      border-color: #38bdf8;
+    }
+
+    .quick-error {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+      font-size: 11.5px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .quick-example {
+      display: block;
+      background: #0b1120;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 10.5px;
+      line-height: 1.4;
+      overflow-x: auto;
+      color: #7dd3fc;
+      margin: 8px 0 0 0;
+    }
+
+    .quick-help {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    .quick-help summary {
+      cursor: pointer;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .quick-help-body {
+      padding: 10px 4px;
+      color: #94a3b8;
+      font-size: 11.5px;
+    }
+
+    .quick-help-body code {
+      color: #7dd3fc;
+      background: #0b1120;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 10.5px;
+    }
+
     .tab-content {
       flex: 1;
       overflow-y: auto;
@@ -677,6 +746,7 @@
         <button class="tab-btn" data-tab="tab-medidas">Medidas (Inferior)</button>
         <button class="tab-btn" data-tab="tab-text">Título</button>
         <button class="tab-btn" data-tab="tab-styles">Estilos y Calco</button>
+        <button class="tab-btn" data-tab="tab-quick">⚡ Creación rápida</button>
       </div>
 
       <!-- Tab: Dimensiones (Ejes Radiales) -->
@@ -828,6 +898,69 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Tab: Creación Rápida (JSON) -->
+      <div id="tab-quick" class="tab-content">
+        <div class="form-group">
+          <label style="font-size: 13px; font-weight: 700;">⚡ Creación Rápida (JSON)</label>
+          <div style="font-size: 12px; color: #94a3b8; margin: 6px 0;">
+            Genera las dimensiones y sus niveles desde un JSON. Ver formato en "¿Cómo se usa?".
+          </div>
+          <textarea id="quick-json" class="quick-json" rows="16" spellcheck="false" placeholder='{"configuracion": {...}, "dimensiones": {...}}'></textarea>
+        </div>
+        <div id="quick-error" class="quick-error" style="display:none;"></div>
+        <div style="display: flex; gap: 6px; margin: 8px 0;">
+          <button id="btn-quick-generar" class="btn-primary" style="flex: 1;" title="Genera las dimensiones/niveles desde el JSON y REEMPLAZA los ejes actuales del preset actual">⚡ Generar diagrama</button>
+          <button id="btn-quick-anadir" style="flex: 1;" title="Añade las dimensiones del JSON a las existentes">+ Añadir ejes</button>
+        </div>
+        <button id="btn-quick-copiar" style="width: 100%; margin-bottom: 8px;" title="Exporta el diagrama ACTUAL (ángulos reales, radios exactos, offsets de etiquetas) a JSON">📋 Copiar JSON del diagrama actual</button>
+        <details class="quick-help">
+          <summary>¿Cómo se usa? (formato y ejemplo)</summary>
+          <div class="quick-help-body">
+            <div class="quick-doc">
+              <b>configuracion</b> (todo opcional):<br>
+              • <code>titulo</code> y <code>color_titulo</code> — texto y color del título<br>
+              • <code>color_flechas</code> — color de las flechas/rayitas<br>
+              • <code>color_borde_cuadros</code> — borde de los cuadros de dimensión<br>
+              • <code>color_fondo</code>, <code>grosor_ejes</code>, <code>longitud_ejes</code><br>
+              • <code>angulos</code> — <code>{ "inicio": 145, "paso": 51, "sentido": "horario" }</code> o array <code>[145, 180, ...]</code><br>
+              • <code>marcas_por_defecto</code> — <code>{ "cantidad": 3, "nombres": ["..."], "radio_inicio": 50, "paso_radio": 35 }</code><br><br>
+              <b>dimensiones</b> (cada eje):<br>
+              • <code>nombre</code> — opcional (por defecto la clave)<br>
+              • <code>corte</code> — niveles: strings, u objetos <code>{ "texto", "radio", "ox", "oy", "anchor" }</code><br>
+              • <code>radios</code> — array de radios alineado a la lista<br>
+              • <code>angulo</code>, <code>estilo</code> — <code>{ "color": "#hex" }</code><br><br>
+              <b>📋 Copiar JSON del diagrama actual</b> exporta ángulos reales + radios + offsets exactos (round-trip completo).
+            </div>
+            <pre class="quick-example">{
+  "configuracion": {
+    "titulo": "TU ANALISIS 2026",
+    "angulos": { "inicio": 145, "sentido": "horario" },
+    "marcas_por_defecto": {
+      "cantidad": 3,
+      "nombres": ["Nivel A", "Nivel B", "Nivel C"],
+      "radio_inicio": 45,
+      "paso_radio": 35
+    }
+  },
+  "dimensiones": {
+    "tiempo": {
+      "nombre": "TIEMPO",
+      "corte": ["Día", "Mes", "Semestre"]
+    },
+    "producto": {
+      "corte": ["Código", "Precio"],
+      "estilo": { "color": "#0e7490" }
+    },
+    "canal": {
+      "corte": ["Web", "App"],
+      "angulo": 275
+    }
+  }
+}</pre>
+          </div>
+        </details>
       </div>
     </aside>
 
@@ -1309,6 +1442,8 @@
         const py = ux;
 
         const effectiveLen = axis.length || axisLength;
+        // Color y grosor propios del eje (estilo desde JSON); si no, heredan globales
+        const colAx = (axis.estilo && axis.estilo.color) ? axis.estilo.color : arrowColor;
         const bw = Math.max(72, axis.name.length * 8.6 + 26);
         const bh = 30;
 
@@ -1346,7 +1481,7 @@
         const outerStroke = axisStroke || 4.5;
         const innerStroke = outerStroke * 0.5;
 
-        html += `<line x1="${cx}" y1="${cy}" x2="${baseX.toFixed(1)}" y2="${baseY.toFixed(1)}" stroke="${arrowColor}" stroke-width="${outerStroke}" stroke-linecap="butt" />`;
+        html += `<line x1="${cx}" y1="${cy}" x2="${baseX.toFixed(1)}" y2="${baseY.toFixed(1)}" stroke="${colAx}" stroke-width="${outerStroke}" stroke-linecap="butt" />`;
         html += `<line x1="${cx}" y1="${cy}" x2="${baseX.toFixed(1)}" y2="${baseY.toFixed(1)}" stroke="${innerColor}" stroke-width="${innerStroke.toFixed(1)}" stroke-linecap="butt" />`;
 
         // Punta de flecha triangular
@@ -1355,7 +1490,7 @@
         const c2x = baseX - (headW / 2) * px;
         const c2y = baseY - (headW / 2) * py;
 
-        html += `<polygon points="${tipX.toFixed(1)},${tipY.toFixed(1)} ${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)}" fill="${arrowColor}" stroke="${arrowColor}" stroke-width="1" stroke-linejoin="round" />`;
+        html += `<polygon points="${tipX.toFixed(1)},${tipY.toFixed(1)} ${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)}" fill="${colAx}" stroke="${colAx}" stroke-width="1" stroke-linejoin="round" />`;
 
         // Marcas transversales (ticks) y sus etiquetas
         const tickHalf = 7;
@@ -1368,7 +1503,10 @@
           const t2x = axX - tickHalf * px;
           const t2y = axY - tickHalf * py;
 
-          html += `<line x1="${t1x.toFixed(1)}" y1="${t1y.toFixed(1)}" x2="${t2x.toFixed(1)}" y2="${t2y.toFixed(1)}" stroke="${arrowColor}" stroke-width="1.8" />`;
+          html += `<line x1="${t1x.toFixed(1)}" y1="${t1y.toFixed(1)}" x2="${t2x.toFixed(1)}" y2="${t2y.toFixed(1)}" stroke="${colAx}" stroke-width="1.8" />`;
+          // Zona de agarre de la rayita (arrastrable: cambia tk.r). Clase
+          // no-export: se elimina al exportar PNG/SVG.
+          html += `<circle cx="${axX.toFixed(1)}" cy="${axY.toFixed(1)}" r="9" fill="transparent" class="tick-line-draggable no-export" data-axis="${axIdx}" data-tick="${tIdx}" style="cursor: move;" />`;
 
           // Posición de la etiqueta (desplazamiento relativo al tick)
           const lblX = Math.round(axX + (tk.ox !== undefined ? tk.ox : 0));
@@ -1983,6 +2121,23 @@
         e.preventDefault();
       }
 
+      // 1b. Arrastre de la RAYITA (línea de nivel): cambia su radio tk.r
+      else if (target.classList.contains('tick-line-draggable')) {
+        const axIdx = parseInt(target.getAttribute('data-axis'), 10);
+        const tIdx = parseInt(target.getAttribute('data-tick'), 10);
+        const axis = state.axes[axIdx];
+        const tick = axis.ticks[tIdx];
+        const dir = axisDirOf(axis);
+        const { cx, cy } = state.canvas;
+        draggingItem = {
+          type: 'tickLine', obj: tick, axisRef: axis, nux: dir.nux, nuy: dir.nuy,
+          axIdx, tIdx
+        };
+        dragStartMouse = { x: e.clientX, y: e.clientY };
+        dragStartPos = { x: cx + tick.r * dir.nux, y: cy + tick.r * dir.nuy };
+        e.preventDefault();
+      }
+
       // 2. Arrastre de cuadro de dimensión
       else if (target.classList.contains('dim-box-rect') || target.closest('.dim-box-group')) {
         const group = target.closest('.dim-box-group');
@@ -2029,6 +2184,12 @@
       if (draggingItem.type === 'tick') {
         draggingItem.obj.ox = Math.round(dragStartPos.ox + dx);
         draggingItem.obj.oy = Math.round(dragStartPos.oy + dy);
+      } else if (draggingItem.type === 'tickLine') {
+        const dasin = (dragStartPos.x + dx - state.canvas.cx) * draggingItem.nux + (dragStartPos.y + dy - state.canvas.cy) * draggingItem.nuy;
+        draggingItem.obj.r = Math.max(5, Math.min(999, Math.round(dasin)));
+        // Espejo en el panel: el NÚMERO de la marca se actualiza al arrastrar
+        const rinp = tickRInputEl(draggingItem.axIdx, draggingItem.tIdx);
+        if (rinp) rinp.value = draggingItem.obj.r;
       } else if (draggingItem.type === 'axis-box') {
         draggingItem.obj.boxX = Math.round(dragStartPos.x + dx);
         draggingItem.obj.boxY = Math.round(dragStartPos.y + dy);
@@ -2043,8 +2204,39 @@
     window.addEventListener('mouseup', () => {
       if (draggingItem) {
         draggingItem = null;
+        guardarEstado();
       }
     });
+
+    // --- espejo panel ↔ lienzo ---
+    // Dirección real del rayo de esta dimensión (hacia su caja), replicando
+    // la geometría que usa renderSVG.
+    function axisDirOf(axis) {
+      const canvas = state.canvas;
+      const cx = canvas.cx, cy = canvas.cy;
+      const effectiveLen = axis.length || canvas.axisLength;
+      const rad = (axis.angle * Math.PI) / 180;
+      const ux = Math.cos(rad), uy = -Math.sin(rad);
+      const bw = Math.max(72, axis.name.length * 8.6 + 26);
+      const bh = 30;
+      let bcx, bcy;
+      if (axis.boxX !== undefined && axis.boxY !== undefined) {
+        bcx = axis.boxX; bcy = axis.boxY;
+      } else {
+        bcx = cx + (effectiveLen + (bw / 2) * Math.abs(ux) + 6) * ux;
+        bcy = cy + (effectiveLen + (bh / 2) * Math.abs(uy) + 6) * uy;
+      }
+      const dx2 = bcx - cx, dy2 = bcy - cy;
+      const dist2 = Math.hypot(dx2, dy2) || 1;
+      return { nux: dx2 / dist2, nuy: dy2 / dist2 };
+    }
+
+    // Input del radio (r) de la marca tIdx del eje axIdx en el panel izquierdo
+    function tickRInputEl(axIdx, tIdx) {
+      const card = document.querySelectorAll('#axes-container .dim-card')[axIdx];
+      if (!card) return null;
+      return card.querySelectorAll('.tick-r')[tIdx] || null;
+    }
 
     // =========================================================================
     // ZOOM Y CONTROLES DEL LIENZO
@@ -2071,9 +2263,17 @@
     // =========================================================================
     // EXPORTACIÓN A PNG ALTA DEFINICIÓN (2X / 300 DPI) Y SVG
     // =========================================================================
+    // Clona el SVG y elimina los manejadores de arrastre (no-export) para que
+    // no aparezcan en las imágenes exportadas.
+    function exportSvgString() {
+      const clone = svgElem.cloneNode(true);
+      clone.querySelectorAll('.no-export').forEach(el => el.remove());
+      return new XMLSerializer().serializeToString(clone);
+    }
+
     function getCanvasBlob(scale = 2) {
       return new Promise((resolve) => {
-        const svgString = new XMLSerializer().serializeToString(svgElem);
+        const svgString = exportSvgString();
         const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
         const URL = window.URL || window.webkitURL || window;
         const blobURL = URL.createObjectURL(svgBlob);
@@ -2129,7 +2329,7 @@
 
     // Descargar SVG
     document.getElementById('btn-export-svg').addEventListener('click', () => {
-      const svgString = new XMLSerializer().serializeToString(svgElem);
+      const svgString = exportSvgString();
       const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -2152,6 +2352,288 @@
       toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 3000);
     }
+
+    // =========================================================================
+    // CREACIÓN RÁPIDA (JSON → dimensiones y niveles)
+    // =========================================================================
+    const QUICK_EXAMPLE = `{
+  "configuracion": {
+    "titulo": "TU ANALISIS 2026",
+    "angulos": { "inicio": 145, "sentido": "horario" },
+    "marcas_por_defecto": {
+      "cantidad": 3,
+      "nombres": ["Nivel A", "Nivel B", "Nivel C"],
+      "radio_inicio": 45,
+      "paso_radio": 35
+    }
+  },
+  "dimensiones": {
+    "tiempo": {
+      "nombre": "TIEMPO",
+      "corte": ["Día", "Mes", "Semestre"]
+    },
+    "producto": {
+      "corte": ["Código", "Precio"],
+      "estilo": { "color": "#0e7490" }
+    },
+    "canal": {
+      "corte": ["Web", "App"],
+      "angulo": 275
+    }
+  }
+}`;
+
+    function quickNum(v, def) {
+      const n = parseFloat(v);
+      const val = (typeof v === 'number') ? v : n;
+      return (typeof val === 'number' && isFinite(val)) ? val : def;
+    }
+
+    function parseQuickJSON(raw) {
+      const txt = (raw || '').trim();
+      if (!txt) throw 'El JSON está vacío: pega tu configuración en el recuadro.';
+      let data;
+      try {
+        data = JSON.parse(txt);
+      } catch (e) {
+        const fixed = txt
+          .replace(/([{,]\s*)([A-Za-z_áéíóúñÁÉÍÓÚÑ][\wáéíóúñÁÉÍÓÚÑ]*)\s*:/g, '$1"$2":')
+          .replace(/'([^']*)'/g, '"$1"')
+          .replace(/,(\s*[}\]])/g, '$1');
+        try {
+          data = JSON.parse(fixed);
+        } catch (e2) {
+          throw 'JSON inválido: ' + e.message;
+        }
+      }
+      if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+        throw 'El JSON debe ser un objeto con "configuracion" y "dimensiones".';
+      }
+      return data;
+    }
+
+    function getQuickDimensions(data) {
+      let dims = data.dimensiones || {};
+      if (Array.isArray(dims)) {
+        return dims.map((d) => ({ key: (d && d.nombre) || 'Eje', props: d || {} }));
+      }
+      return Object.keys(dims).map((key) => ({ key, props: (typeof dims[key] === 'object' && dims[key] !== null) ? dims[key] : {} }));
+    }
+
+    // Convierte el ángulo del eje en ox/oy/anchor por defecto para la etiqueta
+    function quickTickAnchors(angleDeg) {
+      const rad = (angleDeg * Math.PI) / 180;
+      const ux = Math.cos(rad), uy = -Math.sin(rad);
+      if (Math.abs(ux) < 0.25) {
+        return { ox: 0, oy: (uy > 0 ? 18 : -18), anchor: 'middle' };
+      }
+      if (ux > 0) {
+        return { ox: 14, oy: 10, anchor: 'start' };
+      }
+      return { ox: -14, oy: 10, anchor: 'end' };
+    }
+
+    function buildQuickAxes(data) {
+      const cfg = (typeof data.configuracion === 'object' && data.configuracion) || {};
+      const dims = getQuickDimensions(data);
+      if (!dims.length) throw 'Falta "dimensiones" con al menos una dimensión.';
+
+      const angCfg = cfg.angulos;
+      let startDeg = quickNum(angCfg && angCfg.inicio, 145) || 145;
+      let stepDeg = angCfg ? quickNum(angCfg.paso, null) : null;
+      let sentido = (angCfg && (angCfg.sentido === 'antihorario' || angCfg.sentido === 'anticlockwise')) ? -1 : 1;
+      const anglesArr = Array.isArray(angCfg) ? angCfg : null;
+
+      const md = cfg.marcas_por_defecto || {};
+      const dCantidad = Math.max(1, Math.min(20, parseInt(md.cantidad, 10) || 4));
+      const dNombres = Array.isArray(md.nombres) ? md.nombres.map(String) : null;
+      const dRadio0 = quickNum(md.radio_inicio, 45) || 45;
+      const dPasoR = quickNum(md.paso_radio, 35) || 35;
+
+      const axes = [];
+      const stamp = Date.now().toString(36).slice(-4);
+      dims.forEach((entry, i) => {
+        const d = entry.props;
+        const axis = { id: 'dim_' + stamp + i + Math.random().toString(36).slice(2, 5) };
+
+        if (typeof d.nombre === 'string' && d.nombre.trim()) axis.name = d.nombre.trim();
+        else axis.name = entry.key;
+
+        if (d.angulo !== undefined && isFinite(parseFloat(d.angulo))) {
+          axis.angle = parseFloat(d.angulo) % 360;
+        } else if (anglesArr) {
+          axis.angle = (parseFloat(anglesArr[i]) || (startDeg + i * (stepDeg != null ? stepDeg : (360 / dims.length)) * sentido)) % 360;
+        } else {
+          const st = (stepDeg != null) ? stepDeg : (360 / dims.length);
+          axis.angle = ((startDeg + st * i * sentido) % 360 + 360) % 360;
+        }
+        if (axis.angle < 0) axis.angle += 360;
+
+        // niveles: corte/niveles/marcas/campos/atributos (string, array u objetos)
+        let niveles = null;
+        for (const k of ['corte', 'niveles', 'marcas', 'campos', 'atributos']) {
+          if (Array.isArray(d[k]) && d[k].length) { niveles = d[k]; break; }
+          if (typeof d[k] === 'string' && d[k].trim()) {
+            niveles = d[k].split(/[,;\n]/).map(s => s.trim()).filter(Boolean); break;
+          }
+        }
+        if (!niveles) {
+          if (dNombres) {
+            niveles = [];
+            for (let j = 0; j < dCantidad; j++) niveles.push(dNombres[j % dNombres.length]);
+          } else {
+            niveles = [];
+            for (let j = 0; j < dCantidad; j++) niveles.push('Nivel ' + (j + 1));
+          }
+        }
+
+        const r0 = (d.radio_inicio !== undefined && isFinite(parseFloat(d.radio_inicio))) ? parseFloat(d.radio_inicio) : dRadio0;
+        const rp = (d.paso_radio !== undefined && isFinite(parseFloat(d.paso_radio))) ? parseFloat(d.paso_radio) : dPasoR;
+
+        const radiosExplicit = Array.isArray(d.radios) ? d.radios : null;
+        axis.ticks = niveles.map((item, j) => {
+          let texto2 = item, radio2 = null, oX = null, oY = null, anch = null;
+          if (typeof item === 'object' && item !== null) {
+            texto2 = String(item.texto !== undefined ? item.texto : (item.nivel !== undefined ? item.nivel : (item.nombre !== undefined ? item.nombre : 'Nivel ' + (j + 1))));
+            radio2 = quickNum(item.radio !== undefined ? item.radio : item.r, null);
+            oX = quickNum(item.ox, null);
+            oY = quickNum(item.oy, null);
+            if (typeof item.anchor === 'string') anch = item.anchor;
+          }
+          let rr = radio2;
+          if (rr === null && radiosExplicit && radiosExplicit[j] !== undefined && isFinite(parseFloat(radiosExplicit[j]))) {
+            rr = parseFloat(radiosExplicit[j]);
+          }
+          if (rr === null) rr = Math.round(r0 + rp * j);
+          const autoAnch = quickTickAnchors(axis.angle);
+          return {
+            r: Math.round(rr),
+            text: String(texto2),
+            ox: (oX !== null) ? oX : autoAnch.ox,
+            oy: (oY !== null) ? oY : autoAnch.oy,
+            anchor: anch || autoAnch.anchor
+          };
+        });
+
+        if (d.estilo && typeof d.estilo === 'object' && d.estilo.color) {
+          axis.estilo = { color: d.estilo.color };
+        }
+
+        axes.push(axis);
+      });
+
+      return { axes, cfg };
+    }
+
+    function quickShowError(msg) {
+      const el = document.getElementById('quick-error');
+      el.style.display = 'block';
+      el.innerText = msg;
+    }
+
+    function quickHideError() {
+      document.getElementById('quick-error').style.display = 'none';
+    }
+
+    function syncQuickInputs() {
+      const setv = (id, val, labelId, labelText) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+        if (labelId) {
+          const lb = document.getElementById(labelId);
+          if (lb) lb.innerText = labelText || val;
+        }
+      };
+      setv('main-title', state.title ? state.title.text : '');
+      setv('title-color', state.title.color, 'title-color-label', state.title.color);
+      if (state.title.size) setv('title-size', state.title.size);
+      setv('arrow-color', state.canvas.arrowColor, 'arrow-color-label', state.canvas.arrowColor);
+      setv('box-border-color', state.canvas.boxBorderColor, 'box-border-label', state.canvas.boxBorderColor);
+      setv('axis-stroke', state.canvas.axisStroke);
+      setv('axis-length', state.canvas.axisLength);
+      setv('bg-color', state.canvas.bgColor, 'bg-color-label', state.canvas.bgColor);
+    }
+
+    function aplicarCreacionRapida(mode) {
+      try {
+        const data = parseQuickJSON(document.getElementById('quick-json').value);
+        const { axes, cfg } = buildQuickAxes(data);
+        if (mode === 'reemplazar') {
+          state.axes = axes;
+        } else {
+          state.axes = state.axes.concat(axes);
+        }
+        if (typeof cfg.titulo === 'string' && cfg.titulo.trim()) state.title.text = cfg.titulo.trim();
+        if (cfg.color_titulo && /^#/.test(String(cfg.color_titulo))) state.title.color = cfg.color_titulo;
+        if (cfg.color_flechas && /^#/.test(String(cfg.color_flechas))) state.canvas.arrowColor = cfg.color_flechas;
+        if (cfg.color_borde_cuadros && /^#/.test(String(cfg.color_borde_cuadros))) state.canvas.boxBorderColor = cfg.color_borde_cuadros;
+        if (cfg.color_fondo && /^#/.test(String(cfg.color_fondo))) state.canvas.bgColor = cfg.color_fondo;
+        if (cfg.grosor_ejes !== undefined && isFinite(parseFloat(cfg.grosor_ejes))) state.canvas.axisStroke = parseFloat(cfg.grosor_ejes);
+        if (cfg.longitud_ejes !== undefined && isFinite(parseFloat(cfg.longitud_ejes))) state.canvas.axisLength = parseFloat(cfg.longitud_ejes);
+        renderAxesForm();
+        renderSVG();
+        syncQuickInputs();
+        quickHideError();
+        showToast(mode === 'reemplazar'
+          ? `Diagrama generado: ${axes.length} ejes (reemplazados)`
+          : `${axes.length} ejes añadidos`);
+      } catch (err) {
+        quickShowError(typeof err === 'string' ? err : (err && err.message) || String(err));
+        showToast('JSON con errores — revisa el recuadro');
+      }
+    }
+
+    document.getElementById('btn-quick-generar').addEventListener('click', () => aplicarCreacionRapida('reemplazar'));
+    document.getElementById('btn-quick-anadir').addEventListener('click', () => aplicarCreacionRapida('anadir'));
+
+    // Exporta el estado ACTUAL en el mismo formato (round-trip total)
+    function buildJSONDesdeEstado() {
+      const dimensiones = {};
+      state.axes.forEach((a, i) => {
+        let key = String(a.name || ('Eje' + (i + 1))).replace(/[^\wáéíóúñÁÉÍÓÚÑ]/gi, '_');
+        let k2 = key, n = 2;
+        while (dimensiones[k2]) { k2 = key + '_' + n; n++; }
+        const out = {
+          nombre: a.name,
+          angulo: Math.round(a.angle * 10) / 10,
+          corte: (a.ticks || []).map(t => {
+            const o = { texto: t.text, radio: t.r };
+            if (t.ox !== undefined || t.oy !== undefined) { o.ox = t.ox || 0; o.oy = t.oy || 0; }
+            if (t.anchor) o.anchor = t.anchor;
+            return o;
+          })
+        };
+        if (a.estilo && a.estilo.color) out.estilo = { color: a.estilo.color };
+        dimensiones[k2] = out;
+      });
+      return JSON.stringify({
+        configuracion: {
+          titulo: state.title.text,
+          color_titulo: state.title.color,
+          color_flechas: state.canvas.arrowColor,
+          color_borde_cuadros: state.canvas.boxBorderColor,
+          color_fondo: state.canvas.bgColor,
+          grosor_ejes: state.canvas.axisStroke,
+          longitud_ejes: state.canvas.axisLength
+        },
+        dimensiones
+      }, null, 2);
+    }
+
+    document.getElementById('btn-quick-copiar').addEventListener('click', async () => {
+      const jsonOut = buildJSONDesdeEstado();
+      document.getElementById('quick-json').value = jsonOut;
+      try {
+        await navigator.clipboard.writeText(jsonOut);
+        showToast('JSON del diagrama actual copiado (y en el recuadro)');
+      } catch (e) {
+        showToast('JSON del estado actual en el recuadro');
+      }
+    });
+
+    // Precargar ejemplo en el textarea solo la primera vez
+    const quickTAEl = document.getElementById('quick-json');
+    if (!quickTAEl.value.trim()) quickTAEl.value = QUICK_EXAMPLE;
 
     // Navegación de pestañas
     document.querySelectorAll('.tab-btn').forEach(btn => {
