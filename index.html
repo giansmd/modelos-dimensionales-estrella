@@ -681,6 +681,19 @@
       text-align: center;
       padding: 10px 0;
     }
+
+    .modal-actions-migrate {
+      display: flex;
+      gap: 8px;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+    }
+
+    .modal-actions-migrate button {
+      flex: 1;
+      font-size: 11px;
+      padding: 6px 8px;
+    }
   </style>
 </head>
 <body>
@@ -1011,6 +1024,11 @@
         </div>
         <div class="saved-list" id="saved-list">
           <div class="saved-empty">Aún no has guardado diagramas.</div>
+        </div>
+        <div class="modal-actions-migrate">
+          <button id="btn-export-diagramas" title="Descarga TODOS tus diagramas guardados (y el autoguardado) en un archivo JSON de respaldo">⬇ Exportar todos (JSON)</button>
+          <input type="file" id="file-import-diagramas" accept="application/json,.json" style="display:none">
+          <button id="btn-import-diagramas" title="Carga diagramas desde un archivo JSON exportado (los añade a esta lista)">⬆ Importar (JSON)</button>
         </div>
       </div>
     </div>
@@ -2634,6 +2652,83 @@
     // Precargar ejemplo en el textarea solo la primera vez
     const quickTAEl = document.getElementById('quick-json');
     if (!quickTAEl.value.trim()) quickTAEl.value = QUICK_EXAMPLE;
+
+    // =========================================================================
+    // EXPORTAR / IMPORTAR DIAGRAMAS GUARDADOS (respaldo JSON por origen)
+    // =========================================================================
+    document.getElementById('btn-export-diagramas').addEventListener('click', () => {
+      let autosave = null;
+      try { autosave = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) {}
+      const dump = {
+        app: location.hostname,
+        exportado: new Date().toISOString(),
+        diagramas: getDiagramasGuardados(),
+        autoguardado: autosave
+      };
+      const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'diagramas-guardados-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showToast('Archivo JSON con todos los diagramas descargado');
+    });
+
+    document.getElementById('btn-import-diagramas').addEventListener('click', () => {
+      document.getElementById('file-import-diagramas').click();
+    });
+
+    document.getElementById('file-import-diagramas').addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result);
+          let entradas = null;
+          if (Array.isArray(data)) entradas = data;
+          else if (data && Array.isArray(data.diagramas)) entradas = data.diagramas;
+          if (!entradas) throw new Error('formato no reconocido: se esperaba { "diagramas": [...] }');
+          const validas = entradas.filter(x => x && x.nombre && x.s);
+          if (!validas.length) throw new Error('el archivo no contiene diagramas con nombre');
+          const lista = getDiagramasGuardados();
+          const nombres = new Set(lista.map(d => d.nombre));
+          let añadidos = 0;
+          validas.forEach(x => {
+            let nombre = x.nombre;
+            if (nombres.has(nombre)) nombre = nombre + ' (importado)';
+            nombres.add(nombre);
+            lista.unshift({
+              id: (x.id || Date.now().toString(36)) + Math.random().toString(36).slice(2, 5),
+              nombre,
+              s: x.s,
+              z: (typeof x.z === 'number') ? x.z : 1.0,
+              fecha: x.fecha || new Date().toISOString()
+            });
+            añadidos++;
+          });
+          setDiagramasGuardados(lista);
+          renderListaDiagramas();
+          showToast(`Importados ${añadidos} diagramas`);
+          if (data.autoguardado && data.autoguardado.s && data.autoguardado.s.canvas) {
+            setTimeout(() => {
+              if (confirm('¿También restaurar el "diagrama actual" (autoguardado) del archivo? Reemplazará lo que hay en pantalla ahora.')) {
+                try {
+                  localStorage.setItem(SAVE_KEY, JSON.stringify(data.autoguardado));
+                  showToast('Diagrama actual restaurado — recargando...');
+                  setTimeout(() => location.reload(), 800);
+                } catch (e2) {}
+              }
+            }, 400);
+          }
+        } catch (err) {
+          showToast('No se pudo importar: ' + (err.message || err));
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
 
     // Navegación de pestañas
     document.querySelectorAll('.tab-btn').forEach(btn => {
