@@ -777,7 +777,7 @@
       <!-- Tab: Medidas (Cuadro Central Abajo - Máximo 3) -->
       <div id="tab-medidas" class="tab-content">
         <div class="info-banner">
-          📊 <strong>Cuadro de Medidas:</strong> Ubicado en la parte inferior central, directamente debajo de la estrella dimensional. Admite <strong>hasta 3 medidas</strong> con viñetas ✔.
+          📊 <strong>Cuadro de Medidas:</strong> Ubicado en la parte inferior central, debajo de la estrella dimensional. <strong>Medidas ilimitadas</strong> con viñetas ✔. El <strong>Ancho del Cuadro</strong> es editable: las palabras largas se cortan y pasan a la siguiente línea.
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -805,6 +805,10 @@
           <div class="col form-group">
             <label>Posición Vertical (Y)</label>
             <input type="number" id="measures-pos-y" value="442" min="200" max="800">
+          </div>
+          <div class="col form-group">
+            <label>Ancho del Cuadro (px)</label>
+            <input type="number" id="measures-width" placeholder="auto" min="120" max="900" title="Fija el ancho del cuadro; las palabras se ajustan en varias líneas. Vacío = automático.">
           </div>
           <div class="col form-group">
             <label>Centrado Horizontal</label>
@@ -1553,19 +1557,83 @@
       });
 
       // =========================================================================
-      // CUADRO CENTRAL INFERIOR DE MEDIDAS (MÁXIMO 3 MEDIDAS CON ✔)
+      // CUADRO CENTRAL INFERIOR DE MEDIDAS (ILIMITADAS, CON ✔ Y AJUSTE DE LÍNEA)
       // =========================================================================
-      const measuresList = (medidas.items || []).slice(0, 3);
+      const measuresList = (medidas.items || []).filter(m => String((m || '')).trim());
       if (measuresList.length > 0) {
-        // Calcular ancho dinámico según el texto más largo
-        let maxLen = 0;
-        measuresList.forEach(m => {
-          if (m.length > maxLen) maxLen = m.length;
-        });
+        // --- Medida de texto real (canvas 2D) ---
+        let _mCanvas = null;
+        function measureTextW(str, sizePx, bold) {
+          try {
+            if (!_mCanvas) _mCanvas = document.createElement('canvas');
+            const mctx = _mCanvas.getContext('2d');
+            mctx.font = (bold ? 'bold ' : '') + sizePx + 'px Arial, sans-serif';
+            const w = mctx.measureText(str).width;
+            return (w && isFinite(w)) ? w : str.length * 7.3;
+          } catch (e) {
+            return str.length * 7.3;
+          }
+        }
 
-        const mbW = Math.max(220, Math.min(380, maxLen * 8.2 + 58));
-        const lineHeight = 22;
-        const mbH = 16 + measuresList.length * lineHeight;
+        // Envuelve el texto en líneas que caben en maxPx (por palabras;
+        // corta por carácter si una sola palabra excede el ancho).
+        function wrapMedidaText(text, maxPx) {
+          const words = String(text).split(/\s+/).filter(Boolean);
+          const out = [];
+          let line = '';
+          words.forEach(w => {
+            const cand = line ? line + ' ' + w : w;
+            if (measureTextW(cand, 13, true) <= maxPx || !line) {
+              line = cand;
+            } else {
+              out.push(line);
+              line = w;
+            }
+            while (measureTextW(line, 13, true) > maxPx && line.length > 1) {
+              out.push(line.slice(0, Math.max(1, Math.floor(line.length * maxPx / (measureTextW(line, 13, true) || maxPx)))));
+              line = line.slice(Math.max(1, Math.floor(line.length * maxPx / (measureTextW(line, 13, true) || maxPx)))).trim();
+              if (line.startsWith(' ')) line = line.slice(1);
+            }
+          });
+          if (line) out.push(line);
+          return out.length ? out : [''];
+        }
+
+        // --- Ancho / alto del cuadro ---
+        // - El ancho es editable ("Ancho del Cuadro" en el panel): medidas.w en px.
+        // - Sin valor → automático: ancho del texto sin cortar (solo si excede,
+        //   envuelve a 420px).
+        // - El ALTO se recalcula siempre según el número de líneas envueltas.
+        const PAD_L = 38, PAD_R = 18, TOP_PAD = 10, BOT_PAD = 12, LINE_H = 21;
+        const lines = []; // {t: texto de la línea, ck: mostrar checkmark (inicio de medida)}
+        if (typeof medidas.w === 'number' && isFinite(medidas.w) && medidas.w >= 120) {
+          const wrapPx = Math.max(60, medidas.w - PAD_L - PAD_R);
+          measuresList.forEach(m => {
+            const ls = wrapMedidaText(m, wrapPx);
+            ls.forEach((l, li) => lines.push({ t: l, ck: li === 0 }));
+          });
+        } else {
+          const autoPx = 420;
+          let maxLineW = 0;
+          measuresList.forEach(m => {
+            const w = measureTextW(m, 13, true);
+            if (w > maxLineW) maxLineW = w;
+          });
+          if (maxLineW <= autoPx) {
+            measuresList.forEach(m => lines.push({ t: m, ck: true }));
+          } else {
+            measuresList.forEach(m => {
+              const ls = wrapMedidaText(m, autoPx);
+              ls.forEach((l, li) => lines.push({ t: l, ck: li === 0 }));
+            });
+          }
+        }
+        const innerW = Math.max(...lines.map(l => measureTextW(l.t, 13, true)), 0);
+        const mbW = (typeof medidas.w === 'number' && isFinite(medidas.w) && medidas.w >= 120)
+          ? medidas.w
+          : Math.max(220, Math.round(innerW + PAD_L + PAD_R));
+        const mbH = TOP_PAD + 6 + lines.length * LINE_H + BOT_PAD;
+        const lineHeight = LINE_H;
 
         let mbX, mbY;
         if (medidas.autoCenter) {
@@ -1584,15 +1652,19 @@
             <rect x="${mbX.toFixed(1)}" y="${mbY.toFixed(1)}" width="${mbW.toFixed(1)}" height="${mbH.toFixed(1)}" fill="${mbBg}" rx="2" ry="2" class="measures-box-rect" />
         `;
 
-        measuresList.forEach((m, idx) => {
-          const rowY = mbY + 14 + idx * lineHeight + 2;
+        lines.forEach((ln, idx) => {
+          const rowY = mbY + TOP_PAD + 5 + idx * lineHeight + lineHeight / 2;
           const ckX = mbX + 18;
 
-          // Icono Checkmark vectorizado nítido ✔
+          // Checkmark vectorizado nítido ✔ solo en la primera línea de cada
+          // medida; las líneas de continuación van sangradas en la misma X.
+          if (ln.ck) {
+            html += `
+            <path d="M ${ckX} ${(rowY - 2).toFixed(1)} L ${(ckX + 4.5).toFixed(1)} ${(rowY + 3.5).toFixed(1)} L ${(ckX + 12).toFixed(1)} ${(rowY - 6).toFixed(1)}" fill="none" stroke="#000000" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />`;
+          }
           html += `
-            <path d="M ${ckX} ${(rowY - 2).toFixed(1)} L ${(ckX + 4.5).toFixed(1)} ${(rowY + 3.5).toFixed(1)} L ${(ckX + 12).toFixed(1)} ${(rowY - 6).toFixed(1)}" fill="none" stroke="#000000" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
             <text x="${(ckX + 20).toFixed(1)}" y="${rowY.toFixed(1)}" dominant-baseline="middle" font-family="Arial, 'Segoe UI', sans-serif" font-size="13px" font-weight="bold" fill="${mbTextCol}">
-              ${escapeHtml(m)}
+              ${escapeHtml(ln.t)}
             </text>
           `;
         });
@@ -1622,15 +1694,7 @@
       container.innerHTML = '';
 
       const count = state.medidas.items.length;
-      countBadge.innerText = `${count} / 3`;
-
-      if (count >= 3) {
-        addBtn.disabled = true;
-        addBtn.innerText = '+ Añadir Medida (Máx. 3 Alcanzado)';
-      } else {
-        addBtn.disabled = false;
-        addBtn.innerText = '+ Añadir Medida';
-      }
+      countBadge.innerText = `${count}`;
 
       state.medidas.items.forEach((m, idx) => {
         const row = document.createElement('div');
@@ -1657,11 +1721,20 @@
     }
 
     document.getElementById('btn-add-measure').addEventListener('click', () => {
-      if (state.medidas.items.length < 3) {
-        state.medidas.items.push('Nueva Medida');
-        renderMedidasList();
-        renderSVG();
+      state.medidas.items.push('Nueva Medida');
+      renderMedidasList();
+      renderSVG();
+    });
+
+    // Ancho del cuadro de medidas: valor en px; vacío/0 → automatico
+    document.getElementById('measures-width').addEventListener('input', (e) => {
+      const v = parseFloat(e.target.value);
+      if (e.target.value.trim() === '' || !isFinite(v) || v < 120) {
+        delete state.medidas.w;
+      } else {
+        state.medidas.w = Math.round(v);
       }
+      renderSVG();
     });
 
     document.getElementById('measures-bg-color').addEventListener('input', (e) => {
